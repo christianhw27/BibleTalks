@@ -215,7 +215,23 @@ async function loadAdminData() {
         season: current.season || '',
         description: current.description || '',
         cover_image: current.cover_image || '',
-        gallery: Array.isArray(current.gallery) ? [...current.gallery] : [],
+        gallery: Array.isArray(current.gallery)
+          ? current.gallery.map((item) => {
+              if (typeof item === 'string') {
+                const trimmed = item.trim()
+                if (trimmed.startsWith('{')) {
+                  try {
+                    const parsed = JSON.parse(trimmed)
+                    if (parsed.url) {
+                      return { url: parsed.url, caption: parsed.caption || '' }
+                    }
+                  } catch (_) {}
+                }
+                return { url: trimmed, caption: '' }
+              }
+              return { url: item?.url || '', caption: item?.caption || '' }
+            })
+          : [],
       }
     }
   } catch (err) {
@@ -620,7 +636,7 @@ async function handleLookbookGalleryUpload(e) {
   isUploadingLookbookGallery.value = true
   try {
     const publicUrl = await uploadImage(file, 'lookbooks')
-    lookbookForm.value.gallery.push(publicUrl)
+    lookbookForm.value.gallery.push({ url: publicUrl, caption: '' })
     notify('Foto editorial berhasil ditambahkan ke galeri!')
   } catch (err) {
     notify('Gagal unggah foto galeri: ' + err.message, 'error')
@@ -642,6 +658,18 @@ async function handleSaveLookbook() {
 
   actionLoading.value = true
   try {
+    // Format array gallery: jika ada caption simpan JSON string, jika tidak simpan URL string murni
+    const processedGallery = (lookbookForm.value.gallery || [])
+      .filter((g) => g && (g.url || typeof g === 'string'))
+      .map((g) => {
+        const url = typeof g === 'string' ? g : g.url
+        const caption = typeof g === 'string' ? '' : (g.caption || '').trim()
+        if (caption) {
+          return JSON.stringify({ url, caption })
+        }
+        return url
+      })
+
     const payload = {
       title: lookbookForm.value.title,
       slug: (lookbookForm.value.title || 'drop-01')
@@ -652,7 +680,7 @@ async function handleSaveLookbook() {
       season: lookbookForm.value.season,
       description: lookbookForm.value.description,
       cover_image: lookbookForm.value.cover_image,
-      gallery: lookbookForm.value.gallery,
+      gallery: processedGallery,
       is_active: true,
     }
 
@@ -1245,26 +1273,42 @@ async function handleLogout() {
           </div>
 
           <!-- Gallery Photos Grid -->
-          <div v-if="lookbookForm.gallery && lookbookForm.gallery.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          <div v-if="lookbookForm.gallery && lookbookForm.gallery.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
             <div
-              v-for="(img, idx) in lookbookForm.gallery"
+              v-for="(item, idx) in lookbookForm.gallery"
               :key="idx"
-              class="relative aspect-[4/5] bg-brand-100 border border-brand-300 rounded overflow-hidden group shadow-sm"
+              class="bg-brand-50/70 border border-brand-300 rounded-lg overflow-hidden flex flex-col justify-between shadow-sm"
             >
-              <img :src="img" class="w-full h-full object-cover" />
-              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <!-- Media Box -->
+              <div class="relative aspect-[4/3] bg-brand-100 overflow-hidden group">
+                <img :src="typeof item === 'string' ? item : item.url" class="w-full h-full object-cover" />
                 <button
                   type="button"
                   @click="removeLookbookGalleryImage(idx)"
-                  class="p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-full shadow"
+                  class="absolute top-2 right-2 p-1.5 bg-rose-600/90 hover:bg-rose-700 text-white rounded-full shadow transition-colors"
                   title="Hapus Foto Ini"
                 >
-                  <Trash2 class="w-4 h-4" />
+                  <Trash2 class="w-3.5 h-3.5" />
                 </button>
+                <span class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/70 text-white text-[10px] font-mono rounded">
+                  Foto #{{ idx + 1 }}
+                </span>
               </div>
-              <span class="absolute bottom-1 left-1 px-1.5 py-0.5 bg-white/90 text-[9px] font-mono text-brand-800 rounded">
-                Frame {{ idx + 1 }}
-              </span>
+
+              <!-- Optional Caption Box -->
+              <div class="p-3 space-y-1.5 bg-white border-t border-brand-200">
+                <div class="flex items-center justify-between">
+                  <label class="text-[10px] font-mono text-brand-700 uppercase font-semibold">Caption Foto (Opsional)</label>
+                  <span class="text-[9px] font-mono text-brand-400">Kosongkan jika tanpa caption</span>
+                </div>
+                <input
+                  v-if="typeof item === 'object'"
+                  v-model="item.caption"
+                  type="text"
+                  placeholder="Misal: Heavy Boxy Cut / Tampak Belakang..."
+                  class="w-full px-2.5 py-1.5 bg-brand-50 border border-brand-300 rounded text-brand-950 text-xs font-mono placeholder:text-brand-400"
+                />
+              </div>
             </div>
           </div>
           <div v-else class="p-8 border border-dashed border-brand-300 rounded text-center font-mono text-xs text-brand-500">

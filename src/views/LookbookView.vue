@@ -11,15 +11,57 @@ const currentLookbook = computed(() => {
     season: 'Season 2026 Editorial',
     description: 'Eksplorasi kontras antara narasi scripture dan lanskap perkotaan kontemporer di bawah terangnya cahaya mentari.',
     cover_image: '',
-    gallery: [
-      'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=1200&q=80',
-    ],
+    gallery: [],
   }
 })
+
+// Normalisasi foto galeri: mendukung URL string murni maupun format object { url, caption }
+const parsedGallery = computed(() => {
+  const rawList = currentLookbook.value?.gallery || []
+  if (!Array.isArray(rawList) || rawList.length === 0) {
+    if (currentLookbook.value?.cover_image) {
+      return [{ url: currentLookbook.value.cover_image, caption: '' }]
+    }
+    return []
+  }
+
+  return rawList
+    .map((item) => {
+      if (!item) return null
+      if (typeof item === 'object' && item.url) {
+        return { url: item.url, caption: (item.caption || '').trim() }
+      }
+      if (typeof item === 'string') {
+        const trimmed = item.trim()
+        if (trimmed.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(trimmed)
+            if (parsed.url) {
+              return { url: parsed.url, caption: (parsed.caption || '').trim() }
+            }
+          } catch (_) {}
+        }
+        return { url: trimmed, caption: '' }
+      }
+      return null
+    })
+    .filter((p) => p && p.url)
+})
+
+// Pola tata letak editorial asimetris dinamis untuk jumlah foto berapa pun
+function getGridClasses(idx, total) {
+  if (total === 1) {
+    return 'md:col-span-12 h-[500px] sm:h-[620px]'
+  }
+  if (total === 2) {
+    return 'md:col-span-6 h-[460px] sm:h-[560px]'
+  }
+  const pattern = idx % 4
+  if (pattern === 0) return 'md:col-span-8 h-[480px] sm:h-[560px]'
+  if (pattern === 1) return 'md:col-span-4 h-[480px] sm:h-[560px]'
+  if (pattern === 2) return 'md:col-span-5 h-[440px] sm:h-[500px]'
+  return 'md:col-span-7 h-[440px] sm:h-[500px]'
+}
 </script>
 
 <template>
@@ -58,64 +100,40 @@ const currentLookbook = computed(() => {
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       <div class="flex items-center justify-between border-b border-brand-300 pb-4">
         <h2 class="font-mono text-xs uppercase tracking-widest text-brand-500">
-          EDITORIAL ARCHIVE // HIGH-KEY DOCUMENTARY
+          EDITORIAL ARCHIVE // HIGH-KEY DOCUMENTARY ({{ parsedGallery.length }} FOTO)
         </h2>
         <span class="font-mono text-xs text-scripture-bronze font-semibold">
           BANDUNG HERITAGE
         </span>
       </div>
 
-      <!-- Asymmetric Editorial Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-        
-        <!-- Large Frame 1 -->
-        <div class="md:col-span-8 group relative overflow-hidden bg-white border border-brand-300 rounded shadow-sm">
+      <!-- Asymmetric Editorial Grid: Menampilkan SEMUA foto yang diunggah -->
+      <div v-if="parsedGallery.length > 0" class="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-start">
+        <div
+          v-for="(photo, idx) in parsedGallery"
+          :key="idx"
+          class="group relative overflow-hidden bg-white border border-brand-300 rounded shadow-sm w-full"
+          :class="getGridClasses(idx, parsedGallery.length)"
+        >
           <img
-            :src="currentLookbook.gallery?.[0] || currentLookbook.cover_image"
-            alt="Lookbook 1"
-            class="w-full h-[540px] object-cover object-center filter contrast-105 hover:scale-105 transition-all duration-700"
+            :src="photo.url"
+            :alt="photo.caption || currentLookbook.title || 'Lookbook Frame'"
+            loading="lazy"
+            class="w-full h-full object-cover object-center filter contrast-105 hover:scale-105 transition-all duration-700"
           />
-          <div class="absolute bottom-4 left-4 bg-white/95 px-3 py-1.5 rounded font-mono text-[10px] tracking-wider text-brand-800 border border-brand-300 shadow-sm">
-            FRAME 01 // OVERSIZED BOXY TEE
+          <!-- Hanya tampilkan caption jika memang ditulis oleh admin saat upload -->
+          <div
+            v-if="photo.caption"
+            class="absolute bottom-4 left-4 bg-white/95 backdrop-blur-xs px-3.5 py-1.5 rounded font-mono text-[10px] sm:text-xs tracking-wider text-brand-900 border border-brand-300 shadow-sm"
+          >
+            {{ photo.caption }}
           </div>
         </div>
+      </div>
 
-        <!-- Medium Frame 2 -->
-        <div class="md:col-span-4 group relative overflow-hidden bg-white border border-brand-300 rounded shadow-sm">
-          <img
-            :src="currentLookbook.gallery?.[1] || currentLookbook.cover_image"
-            alt="Lookbook 2"
-            class="w-full h-[540px] object-cover object-center filter contrast-105 hover:scale-105 transition-all duration-700"
-          />
-          <div class="absolute bottom-4 left-4 bg-white/95 px-3 py-1.5 rounded font-mono text-[10px] tracking-wider text-brand-800 border border-brand-300 shadow-sm">
-            FRAME 02 // ACID WASH TREATMENT
-          </div>
-        </div>
-
-        <!-- Medium Frame 3 -->
-        <div class="md:col-span-5 group relative overflow-hidden bg-white border border-brand-300 rounded shadow-sm">
-          <img
-            :src="currentLookbook.gallery?.[2] || currentLookbook.cover_image"
-            alt="Lookbook 3"
-            class="w-full h-[460px] object-cover object-center filter contrast-105 hover:scale-105 transition-all duration-700"
-          />
-          <div class="absolute bottom-4 left-4 bg-white/95 px-3 py-1.5 rounded font-mono text-[10px] tracking-wider text-brand-800 border border-brand-300 shadow-sm">
-            FRAME 03 // HEAVY FLEECE HOODIE
-          </div>
-        </div>
-
-        <!-- Large Frame 4 -->
-        <div class="md:col-span-7 group relative overflow-hidden bg-white border border-brand-300 rounded shadow-sm">
-          <img
-            :src="currentLookbook.gallery?.[3] || currentLookbook.cover_image"
-            alt="Lookbook 4"
-            class="w-full h-[460px] object-cover object-center filter contrast-105 hover:scale-105 transition-all duration-700"
-          />
-          <div class="absolute bottom-4 left-4 bg-white/95 px-3 py-1.5 rounded font-mono text-[10px] tracking-wider text-brand-800 border border-brand-300 shadow-sm">
-            FRAME 04 // TACTICAL RIPSTOP CARGO
-          </div>
-        </div>
-
+      <!-- Empty State jika belum ada foto galeri -->
+      <div v-else class="p-16 border border-dashed border-brand-300 rounded text-center font-mono text-xs text-brand-500">
+        Belum ada foto galeri lookbook yang diunggah. Tambahkan melalui Dashboard Admin.
       </div>
 
       <!-- Bottom Call To Action to Catalog -->
