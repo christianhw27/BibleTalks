@@ -165,11 +165,28 @@ export function saveLocalShowcaseCards(cards) {
  * Mengambil daftar kartu showcase homepage dan mencocokkan dengan Master Kategori yang ada
  * @param {Array} categories - Daftar master categories dari DB
  */
-export function getResolvedShowcaseCards(categories = []) {
-  const rawCards = getLocalShowcaseCards()
+export async function getResolvedShowcaseCards(categories = []) {
+  try {
+    const { data, error } = await supabase
+      .from('homepage_showcase')
+      .select('*')
+      .order('sort_order', { ascending: true })
 
-  return rawCards.map((card, idx) => {
-    // Cari master kategori yang cocok (berdasarkan category_id atau category_slug)
+    if (!error && data && data.length > 0) {
+      // Simpan cache ke localStorage
+      saveLocalShowcaseCards(data)
+      return mapShowcaseWithCategories(data, categories)
+    }
+  } catch (err) {
+    console.warn('Supabase homepage_showcase query error, fallback to localStorage:', err)
+  }
+
+  const rawCards = getLocalShowcaseCards()
+  return mapShowcaseWithCategories(rawCards, categories)
+}
+
+function mapShowcaseWithCategories(cards, categories = []) {
+  return cards.map((card, idx) => {
     const matchedCategory = categories.find(
       (c) => c.id === card.category_id || c.slug === card.category_slug
     )
@@ -191,64 +208,77 @@ export function getResolvedShowcaseCards(categories = []) {
 }
 
 /**
- * Menyimpan perubahan pada satu kartu showcase homepage
+ * Menyimpan perubahan pada satu kartu showcase homepage ke Supabase
  */
-export function updateHomepageShowcaseCard(cardId, cardData, categories = []) {
-  const cards = getResolvedShowcaseCards(categories)
-  const idx = cards.findIndex((c) => c.id === cardId)
-
-  // Cari kategori terkait untuk memastikan slug sinkron
+export async function updateHomepageShowcaseCard(cardId, cardData, categories = []) {
   const matchedCategory = categories.find((c) => c.id === cardData.category_id)
   const categorySlug = matchedCategory ? matchedCategory.slug : cardData.category_slug
 
-  const updatedItem = {
-    ...cardData,
+  const payload = {
     id: cardId,
-    category_slug: categorySlug,
-    category_name: matchedCategory ? matchedCategory.name : cardData.category_name,
+    category_id: cardData.category_id || null,
+    category_slug: categorySlug || '',
+    title: cardData.title || '',
+    tag: cardData.tag || '',
+    description: cardData.description || '',
+    image: cardData.image || '',
+    badge: cardData.badge || 'COLLECTION',
+    button_text: cardData.button_text || 'Lihat',
+    sort_order: Number(cardData.sort_order) || 1,
   }
 
+  try {
+    const { error } = await supabase
+      .from('homepage_showcase')
+      .upsert([payload])
+
+    if (error) {
+      console.warn('Gagal upsert homepage_showcase di Supabase:', error)
+    }
+  } catch (err) {
+    console.warn('Error update homepage showcase:', err)
+  }
+
+  // Juga update local cache
+  const cards = await getResolvedShowcaseCards(categories)
+  const idx = cards.findIndex((c) => c.id === cardId)
   if (idx !== -1) {
-    cards[idx] = updatedItem
+    cards[idx] = { ...cards[idx], ...payload }
   } else {
-    cards.push(updatedItem)
+    cards.push(payload)
   }
-
-  // Sort by sort_order
-  cards.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
   saveLocalShowcaseCards(cards)
   return cards
 }
 
 /**
- * Menambah kartu showcase homepage baru
+ * Menambah kartu showcase homepage baru ke Supabase
  */
-export function addHomepageShowcaseCard(cardData, categories = []) {
-  const cards = getResolvedShowcaseCards(categories)
+export async function addHomepageShowcaseCard(cardData, categories = []) {
   const newId = `showcase-${Date.now()}`
-  
-  const matchedCategory = categories.find((c) => c.id === cardData.category_id)
-  const categorySlug = matchedCategory ? matchedCategory.slug : cardData.category_slug
-
-  const newItem = {
-    ...cardData,
-    id: newId,
-    category_slug: categorySlug,
-    category_name: matchedCategory ? matchedCategory.name : '',
-    sort_order: cards.length + 1,
-  }
-
-  cards.push(newItem)
-  saveLocalShowcaseCards(cards)
-  return cards
+  return await updateHomepageShowcaseCard(newId, cardData, categories)
 }
 
 /**
- * Menghapus kartu showcase homepage
+ * Menghapus kartu showcase homepage dari Supabase
  */
-export function deleteHomepageShowcaseCard(cardId, categories = []) {
-  let cards = getResolvedShowcaseCards(categories)
+export async function deleteHomepageShowcaseCard(cardId, categories = []) {
+  try {
+    const { error } = await supabase
+      .from('homepage_showcase')
+      .delete()
+      .eq('id', cardId)
+
+    if (error) {
+      console.warn('Gagal menghapus kartu showcase dari Supabase:', error)
+    }
+  } catch (err) {
+    console.warn('Error delete showcase card:', err)
+  }
+
+  let cards = getLocalShowcaseCards()
   cards = cards.filter((c) => c.id !== cardId)
   saveLocalShowcaseCards(cards)
   return cards
 }
+

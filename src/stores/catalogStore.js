@@ -81,7 +81,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       ])
 
       categories.value = cats
-      homepageShowcaseCards.value = getResolvedShowcaseCards(cats)
+      homepageShowcaseCards.value = await getResolvedShowcaseCards(cats)
       products.value = prods
       featuredProducts.value = prods.filter((p) => p.is_featured)
       lookbooks.value = books
@@ -118,7 +118,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     try {
       const cats = await getCategories()
       categories.value = cats
-      homepageShowcaseCards.value = getResolvedShowcaseCards(cats)
+      homepageShowcaseCards.value = await getResolvedShowcaseCards(cats)
     } catch (err) {
       console.error('Error refreshing categories:', err)
     }

@@ -195,7 +195,7 @@ async function loadAdminData() {
     ])
     productsList.value = prods
     categoriesList.value = cats
-    showcaseCardsList.value = getResolvedShowcaseCards(cats)
+    showcaseCardsList.value = await getResolvedShowcaseCards(cats)
     bundlesList.value = bundles
 
     settingsForm.value = {
@@ -274,7 +274,7 @@ async function handleSaveMasterCategory() {
     isMasterCategoryModalOpen.value = false
     await catalogStore.refreshCategories()
     categoriesList.value = await adminGetCategories()
-    showcaseCardsList.value = getResolvedShowcaseCards(categoriesList.value)
+    showcaseCardsList.value = await getResolvedShowcaseCards(categoriesList.value)
   } catch (err) {
     console.error('Error creating category:', err)
     notify('Gagal membuat kategori: ' + err.message, 'error')
@@ -302,7 +302,7 @@ async function handleDeleteMasterCategory(cat) {
     notify(`Kategori "${cat.name}" berhasil dihapus!`)
     await catalogStore.refreshCategories()
     categoriesList.value = await adminGetCategories()
-    showcaseCardsList.value = getResolvedShowcaseCards(categoriesList.value)
+    showcaseCardsList.value = await getResolvedShowcaseCards(categoriesList.value)
   } catch (err) {
     console.error('Error deleting category:', err)
     notify('Gagal menghapus kategori: ' + err.message, 'error')
@@ -393,16 +393,16 @@ async function handleSaveShowcaseCard() {
   actionLoading.value = true
   try {
     if (isShowcaseEditing.value && editShowcaseId.value) {
-      updateHomepageShowcaseCard(editShowcaseId.value, showcaseForm.value, categoriesList.value)
+      await updateHomepageShowcaseCard(editShowcaseId.value, showcaseForm.value, categoriesList.value)
       notify('Kartu Kategori Koleksi Homepage berhasil diperbarui!')
     } else {
-      addHomepageShowcaseCard(showcaseForm.value, categoriesList.value)
+      await addHomepageShowcaseCard(showcaseForm.value, categoriesList.value)
       notify('Kartu Kategori Koleksi Homepage berhasil ditambahkan!')
     }
 
     isShowcaseModalOpen.value = false
     await catalogStore.refreshCategories()
-    showcaseCardsList.value = getResolvedShowcaseCards(categoriesList.value)
+    showcaseCardsList.value = await getResolvedShowcaseCards(categoriesList.value)
   } catch (err) {
     console.error('Error saving showcase card:', err)
     notify('Gagal menyimpan kartu koleksi: ' + err.message, 'error')
@@ -411,13 +411,13 @@ async function handleSaveShowcaseCard() {
   }
 }
 
-function handleDeleteShowcaseCard(card) {
+async function handleDeleteShowcaseCard(card) {
   if (!confirm(`Hapus kartu koleksi "${card.title}" dari Homepage? (Kategori masternya tidak akan terhapus).`)) return
 
-  deleteHomepageShowcaseCard(card.id, categoriesList.value)
+  await deleteHomepageShowcaseCard(card.id, categoriesList.value)
   notify(`Kartu koleksi "${card.title}" dihapus dari Homepage!`)
-  catalogStore.refreshCategories()
-  showcaseCardsList.value = getResolvedShowcaseCards(categoriesList.value)
+  await catalogStore.refreshCategories()
+  showcaseCardsList.value = await getResolvedShowcaseCards(categoriesList.value)
 }
 
 onMounted(() => {
