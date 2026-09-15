@@ -6,6 +6,7 @@ import {
   getLookbooks,
   getStoreSettings,
   getResolvedShowcaseCards,
+  getBundles,
 } from '../services/catalogService'
 
 export const useCatalogStore = defineStore('catalog', () => {
@@ -14,6 +15,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const products = ref([])
   const featuredProducts = ref([])
   const lookbooks = ref([])
+  const bundles = ref([])
   const storeSettings = ref({
     brand_name: 'BIBLE TALKS',
     tagline: 'Subculture & Contemporary Streetwear',
@@ -70,11 +72,12 @@ export const useCatalogStore = defineStore('catalog', () => {
       loading.value = true
       error.value = null
 
-      const [cats, prods, books, settings] = await Promise.all([
+      const [cats, prods, books, settings, bundleItems] = await Promise.all([
         getCategories().catch(() => []),
         getProducts({ limit: 50 }).catch(() => []),
         getLookbooks().catch(() => []),
         getStoreSettings().catch(() => null),
+        getBundles().catch(() => []),
       ])
 
       categories.value = cats
@@ -82,6 +85,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       products.value = prods
       featuredProducts.value = prods.filter((p) => p.is_featured)
       lookbooks.value = books
+      bundles.value = bundleItems
       if (settings) {
         storeSettings.value = { ...storeSettings.value, ...settings }
       }
@@ -120,12 +124,23 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  // Refresh bundles list (e.g. after admin update)
+  async function refreshBundles() {
+    try {
+      const b = await getBundles()
+      bundles.value = b
+    } catch (err) {
+      console.error('Error refreshing bundles:', err)
+    }
+  }
+
   return {
     categories,
     homepageShowcaseCards,
     products,
     featuredProducts,
     lookbooks,
+    bundles,
     storeSettings,
     loading,
     isLoaded,
@@ -139,5 +154,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     initStore,
     refreshProducts,
     refreshCategories,
+    refreshBundles,
   }
 })
+

@@ -147,3 +147,6 @@ export async function getStoreSettings() {
     announcement_bar: 'NEW ARRIVALS AVAILABLE',
   }
 }
+
+export { getBundles, DEFAULT_BUNDLES } from './bundleService'
+

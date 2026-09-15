@@ -250,3 +250,15 @@ export async function createLookbook(lookbookData) {
   if (error) throw error
   return data
 }
+
+// ==============================================================================
+// BUNDLE PACKAGES MANAGEMENT
+// ==============================================================================
+
+export {
+  getBundles,
+  createBundle,
+  updateBundle,
+  deleteBundle,
+} from './bundleService'
+

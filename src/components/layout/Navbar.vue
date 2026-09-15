@@ -81,7 +81,6 @@ function openWhatsApp() {
               :class="route.path === '/lookbook' ? 'text-brand-900 border-scripture-gold font-semibold' : 'text-brand-600 border-transparent'"
             >
               Lookbook
-              <span class="px-1.5 py-0.5 text-[9px] bg-scripture-linen text-scripture-bronze border border-scripture-sand rounded">Vol. 01</span>
             </router-link>
           </nav>
         </div>

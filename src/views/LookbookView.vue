@@ -10,7 +10,7 @@ const currentLookbook = computed(() => {
     title: 'Drop 01 // Genesis & Concrete Youth',
     season: 'Season 2026 Editorial',
     description: 'Eksplorasi kontras antara narasi scripture dan lanskap perkotaan kontemporer di bawah terangnya cahaya mentari.',
-    cover_image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1600&q=80',
+    cover_image: '',
     gallery: [
       'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=1200&q=80',

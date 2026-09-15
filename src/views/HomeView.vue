@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Tag,
+  Eye,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -96,54 +97,15 @@ function navigateToCategory(slug) {
   router.push({ path: '/catalog', query: { category: slug } })
 }
 
-// Curated Bundles Template
-const bundleList = [
-  {
-    id: 'bundle-01',
-    title: 'The Sabbath Essential Set',
-    subtitle: 'Heavyweight Boxy Tee + Corduroy Cap + Free Sticker Pack',
-    originalPrice: 320000,
-    bundlePrice: 270000,
-    savingsText: 'Hemat Rp50.000',
-    badge: 'BEST VALUE',
-    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=800&q=80',
-    items: [
-      { name: 'Heavyweight Boxy Tee (Grace & Chaos / Holy Rebel)', detail: 'Bahan 100% Katun 16s 235 GSM (Pilihan Size S-XL)' },
-      { name: 'Corduroy Unstructured 6-Panel Cap', detail: 'Material corduroy vintage tebal dengan bordir micro' },
-      { name: 'Bible Talks Scripture Sticker Pack', detail: 'Gratis 5 pcs stiker vinyl tahan air bertema scripture' },
-    ],
-  },
-  {
-    id: 'bundle-02',
-    title: 'Upper Room Outerwear Set',
-    subtitle: 'Heavy Zip Hoodie 380 GSM + Tactical Cargo Pants',
-    originalPrice: 705000,
-    bundlePrice: 595000,
-    savingsText: 'Hemat Rp110.000',
-    badge: 'COLD WEATHER',
-    image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=800&q=80',
-    items: [
-      { name: 'Distressed Heavy Zip Hoodie (Underground Psalms)', detail: 'Fleece tebal 380 GSM dengan zipper antik 2 arah' },
-      { name: 'Tactical Parachute Cargo Pants', detail: 'Material ripstop water-repellent dengan 6 saku ergonomis' },
-      { name: 'Scripture Woven Lanyard / Keychain', detail: 'Gratis gantungan kunci tenun eksklusif' },
-    ],
-  },
-  {
-    id: 'bundle-03',
-    title: 'Fellowship & Devotion Pack',
-    subtitle: 'Signature Washed Tee + Stainless Tumbler + Devotion Tote',
-    originalPrice: 445000,
-    bundlePrice: 375000,
-    savingsText: 'Hemat Rp70.000',
-    badge: 'DAILY ESSENTIAL',
-    image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=800&q=80',
-    items: [
-      { name: 'Vintage Washed Acid Tee (Holy Rebel)', detail: 'Kaos vintage wash otentik teknik pudar 90-an' },
-      { name: 'Bible Talks Vacuum Tumbler 500ml', detail: 'Stainless SUS304 double-wall tahan panas/dingin 12 jam' },
-      { name: 'Heavyweight 14oz Canvas Tote Bag', detail: 'Gratis tote bag kanvas tebal untuk buku atau Alkitab' },
-    ],
-  },
-]
+// Curated Bundles (Dynamic from Store / Admin / Fallback)
+import { DEFAULT_BUNDLES } from '../services/bundleService'
+
+const bundleList = computed(() => {
+  if (catalogStore.bundles && catalogStore.bundles.length > 0) {
+    return catalogStore.bundles.filter((b) => b.is_active !== false)
+  }
+  return DEFAULT_BUNDLES
+})
 
 const selectedBundleModal = ref(null)
 
@@ -353,36 +315,53 @@ function orderBundleWhatsApp(bundle) {
           :key="bundle.id"
           class="bg-white border border-brand-300 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
         >
-          <!-- Top Media Container -->
+          <!-- Top Media Container (Prominent Portrait Aspect Ratio) -->
           <div>
-            <div class="relative aspect-[16/10] overflow-hidden bg-brand-100">
+            <div
+              @click="openBundleModal(bundle)"
+              class="relative aspect-[4/5] overflow-hidden bg-brand-100 cursor-pointer"
+            >
               <img
                 :src="bundle.image"
                 :alt="bundle.title"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent"></div>
 
               <!-- Badges -->
               <div class="absolute top-3 left-3 flex items-center gap-2">
-                <span class="px-2.5 py-1 text-[10px] font-mono tracking-widest uppercase bg-brand-900 text-white font-semibold rounded">
+                <span class="px-2.5 py-1 text-[10px] font-mono tracking-widest uppercase bg-brand-900/95 backdrop-blur-xs text-white font-semibold rounded shadow-xs">
                   {{ bundle.badge }}
                 </span>
               </div>
               <div class="absolute top-3 right-3">
-                <span class="px-2.5 py-1 text-[10px] font-mono tracking-widest uppercase bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded">
+                <span class="px-2.5 py-1 text-[10px] font-mono tracking-widest uppercase bg-amber-400 text-brand-950 font-bold rounded shadow-xs">
                   {{ bundle.savingsText }}
+                </span>
+              </div>
+
+              <!-- Quick Hover Indication to view details -->
+              <div class="absolute bottom-3 inset-x-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/95 backdrop-blur-xs text-brand-950 text-[10px] font-mono uppercase tracking-wider font-semibold shadow-sm">
+                  <Eye class="w-3.5 h-3.5" />
+                  <span>Rincian Lengkap</span>
+                </span>
+                <span class="text-[10px] font-mono text-white bg-black/60 px-2 py-1 rounded backdrop-blur-xs">
+                  {{ bundle.items?.length || 0 }} Items
                 </span>
               </div>
             </div>
 
-            <!-- Content -->
-            <div class="p-6 space-y-5">
+            <!-- Content (Clean, photo-first focus without cluttering item lists) -->
+            <div class="p-6 space-y-4">
               <div class="space-y-1">
-                <h3 class="font-serif font-bold text-xl text-brand-950 uppercase leading-snug">
+                <h3
+                  @click="openBundleModal(bundle)"
+                  class="font-serif font-bold text-xl text-brand-950 uppercase leading-snug cursor-pointer hover:text-scripture-bronze transition-colors"
+                >
                   {{ bundle.title }}
                 </h3>
-                <p class="text-xs font-mono text-brand-500 uppercase tracking-wider">
+                <p class="text-xs font-mono text-brand-500 uppercase tracking-wider line-clamp-2">
                   {{ bundle.subtitle }}
                 </p>
               </div>
@@ -397,26 +376,9 @@ function orderBundleWhatsApp(bundle) {
                     {{ catalogStore.formatPrice(bundle.bundlePrice) }}
                   </span>
                 </div>
-                <span class="text-[11px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-semibold">
+                <span class="text-[11px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded font-semibold">
                   {{ bundle.savingsText }}
                 </span>
-              </div>
-
-              <!-- Inclusions List -->
-              <div class="space-y-2">
-                <span class="text-[11px] font-mono text-brand-500 uppercase tracking-widest block font-medium">
-                  ISI DALAM PAKET:
-                </span>
-                <ul class="space-y-2 text-xs text-brand-700">
-                  <li
-                    v-for="(item, idx) in bundle.items"
-                    :key="idx"
-                    class="flex items-start gap-2"
-                  >
-                    <Check class="w-4 h-4 text-scripture-gold flex-shrink-0 mt-0.5" />
-                    <span>{{ item.name }}</span>
-                  </li>
-                </ul>
               </div>
             </div>
           </div>
@@ -432,12 +394,13 @@ function orderBundleWhatsApp(bundle) {
               <span>Pesan Bundle via WA</span>
             </button>
 
-            <!-- View Detail Items -->
+            <!-- View Detail Items Button -->
             <button
               @click="openBundleModal(bundle)"
-              class="w-full py-2.5 bg-white hover:bg-brand-100 text-brand-800 border border-brand-300 rounded transition-colors text-center"
+              class="w-full py-2.5 bg-white hover:bg-brand-100 text-brand-800 border border-brand-300 rounded transition-colors flex items-center justify-center gap-2 font-semibold"
             >
-              Lihat Rincian Item
+              <Eye class="w-3.5 h-3.5 text-brand-500" />
+              <span>Lihat Rincian Item ({{ bundle.items?.length || 0 }})</span>
             </button>
           </div>
         </div>
@@ -513,21 +476,32 @@ function orderBundleWhatsApp(bundle) {
 
         <!-- Modal Body -->
         <div class="p-6 overflow-y-auto space-y-6 flex-grow">
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded">
-                {{ selectedBundleModal.savingsText }}
-              </span>
-              <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-brand-900 text-white font-medium rounded">
-                {{ selectedBundleModal.badge }}
-              </span>
+          <!-- Bundle Header Card with Photo -->
+          <div class="flex flex-col sm:flex-row gap-4 items-start pb-4 border-b border-brand-200">
+            <div class="w-full sm:w-36 aspect-square sm:aspect-[4/5] rounded overflow-hidden bg-brand-100 border border-brand-200 flex-shrink-0">
+              <img
+                v-if="selectedBundleModal.image"
+                :src="selectedBundleModal.image"
+                :alt="selectedBundleModal.title"
+                class="w-full h-full object-cover"
+              />
             </div>
-            <h3 class="font-serif font-bold text-2xl text-brand-950 uppercase">
-              {{ selectedBundleModal.title }}
-            </h3>
-            <p class="text-xs font-mono text-brand-500 uppercase tracking-wider mt-1">
-              {{ selectedBundleModal.subtitle }}
-            </p>
+            <div class="space-y-2 flex-grow">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded">
+                  {{ selectedBundleModal.savingsText }}
+                </span>
+                <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-brand-900 text-white font-medium rounded">
+                  {{ selectedBundleModal.badge }}
+                </span>
+              </div>
+              <h3 class="font-serif font-bold text-xl sm:text-2xl text-brand-950 uppercase leading-tight">
+                {{ selectedBundleModal.title }}
+              </h3>
+              <p class="text-xs font-mono text-brand-600 uppercase tracking-wider">
+                {{ selectedBundleModal.subtitle }}
+              </p>
+            </div>
           </div>
 
           <!-- Price Highlight -->

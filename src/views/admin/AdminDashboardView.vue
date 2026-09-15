@@ -21,6 +21,10 @@ import {
   updateHomepageShowcaseCard,
   addHomepageShowcaseCard,
   deleteHomepageShowcaseCard,
+  getBundles,
+  createBundle,
+  updateBundle,
+  deleteBundle,
 } from '../../services/adminService'
 import {
   Package,
@@ -42,22 +46,47 @@ import {
   LayoutGrid,
   FolderTree,
   Link as LinkIcon,
+  Gift,
+  Boxes,
+  Eye,
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const catalogStore = useCatalogStore()
 
-const activeTab = ref('products') // 'products' | 'categories' | 'settings' | 'lookbook'
+const activeTab = ref('products') // 'products' | 'categories' | 'bundles' | 'settings' | 'lookbook'
 const productsList = ref([])
 const categoriesList = ref([])
 const showcaseCardsList = ref([])
+const bundlesList = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const notification = ref({ type: '', text: '' })
 
 // Master Category & Homepage Showcase State
 const activeCategorySubTab = ref('showcase') // 'showcase' | 'master'
+
+// Bundle State
+const isBundleModalOpen = ref(false)
+const isBundleEditing = ref(false)
+const editBundleId = ref(null)
+const isUploadingBundleImage = ref(false)
+
+const bundleForm = ref({
+  title: '',
+  subtitle: '',
+  originalPrice: 0,
+  bundlePrice: 0,
+  savingsText: '',
+  badge: 'BEST VALUE',
+  image: '',
+  items: [{ name: '', detail: '' }],
+  sort_order: 1,
+  is_active: true,
+})
+
+const bundleBadgePresets = ['BEST VALUE', 'LIMITED DROP', 'COLD WEATHER', 'DAILY ESSENTIAL', 'SPECIAL SET', 'HOT DEAL']
 
 // 1. Master Category Modal State
 const isMasterCategoryModalOpen = ref(false)
@@ -158,14 +187,16 @@ async function loadAdminData() {
   loading.value = true
   try {
     await catalogStore.initStore()
-    const [prods, books, cats] = await Promise.all([
+    const [prods, books, cats, bundles] = await Promise.all([
       adminGetProducts(),
       adminGetLookbooks().catch(() => []),
       adminGetCategories().catch(() => []),
+      getBundles().catch(() => []),
     ])
     productsList.value = prods
     categoriesList.value = cats
     showcaseCardsList.value = getResolvedShowcaseCards(cats)
+    bundlesList.value = bundles
 
     settingsForm.value = {
       brand_name: catalogStore.storeSettings.brand_name || '',
@@ -644,6 +675,149 @@ async function handleSaveLookbook() {
   }
 }
 
+// ==============================================================================
+// BUNDLE PACKAGES ACTIONS
+// ==============================================================================
+
+function updateBundleSavingsText() {
+  const orig = Number(bundleForm.value.originalPrice) || 0
+  const bPrice = Number(bundleForm.value.bundlePrice) || 0
+  if (orig > bPrice) {
+    bundleForm.value.savingsText = `Hemat Rp${(orig - bPrice).toLocaleString('id-ID')}`
+  }
+}
+
+function openAddBundleModal() {
+  isBundleEditing.value = false
+  editBundleId.value = null
+  bundleForm.value = {
+    title: '',
+    subtitle: '',
+    originalPrice: 300000,
+    bundlePrice: 250000,
+    savingsText: 'Hemat Rp50.000',
+    badge: 'BEST VALUE',
+    image: '',
+    items: [
+      { name: '', detail: '' }
+    ],
+    sort_order: bundlesList.value.length + 1,
+    is_active: true,
+  }
+  isBundleModalOpen.value = true
+}
+
+function openEditBundleModal(bundle) {
+  isBundleEditing.value = true
+  editBundleId.value = bundle.id
+  bundleForm.value = {
+    title: bundle.title,
+    subtitle: bundle.subtitle || '',
+    originalPrice: Number(bundle.originalPrice || 0),
+    bundlePrice: Number(bundle.bundlePrice || 0),
+    savingsText: bundle.savingsText || '',
+    badge: bundle.badge || 'BEST VALUE',
+    image: bundle.image || '',
+    items: Array.isArray(bundle.items) && bundle.items.length > 0
+      ? bundle.items.map((i) => ({ name: i.name || '', detail: i.detail || '' }))
+      : [{ name: '', detail: '' }],
+    sort_order: Number(bundle.sort_order || 1),
+    is_active: bundle.is_active !== false,
+  }
+  isBundleModalOpen.value = true
+}
+
+function addBundleItem() {
+  bundleForm.value.items.push({ name: '', detail: '' })
+}
+
+function removeBundleItem(index) {
+  if (bundleForm.value.items.length <= 1) {
+    bundleForm.value.items[0] = { name: '', detail: '' }
+    return
+  }
+  bundleForm.value.items.splice(index, 1)
+}
+
+async function handleBundleImageUpload(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  isUploadingBundleImage.value = true
+  try {
+    const publicUrl = await uploadImage(file, 'products')
+    bundleForm.value.image = publicUrl
+    notify('Foto paket bundle berhasil diunggah!')
+  } catch (err) {
+    console.error('Error uploading bundle image:', err)
+    notify('Gagal mengunggah foto bundle: ' + err.message, 'error')
+  } finally {
+    isUploadingBundleImage.value = false
+    e.target.value = ''
+  }
+}
+
+async function handleSaveBundle() {
+  if (!bundleForm.value.title) {
+    notify('Mohon isi judul paket bundle!', 'error')
+    return
+  }
+
+  actionLoading.value = true
+  try {
+    const cleanItems = bundleForm.value.items
+      .filter((i) => i.name && i.name.trim() !== '')
+      .map((i) => ({ name: i.name.trim(), detail: i.detail ? i.detail.trim() : '' }))
+
+    const payload = {
+      title: bundleForm.value.title.trim(),
+      subtitle: bundleForm.value.subtitle?.trim() || '',
+      originalPrice: Number(bundleForm.value.originalPrice) || 0,
+      bundlePrice: Number(bundleForm.value.bundlePrice) || 0,
+      savingsText: bundleForm.value.savingsText?.trim() || '',
+      badge: bundleForm.value.badge?.trim() || 'BEST VALUE',
+      image: bundleForm.value.image?.trim() || '',
+      items: cleanItems,
+      sort_order: Number(bundleForm.value.sort_order) || 1,
+      is_active: bundleForm.value.is_active,
+    }
+
+    if (isBundleEditing.value && editBundleId.value) {
+      await updateBundle(editBundleId.value, payload)
+      notify(`Paket bundle "${payload.title}" berhasil diperbarui!`)
+    } else {
+      await createBundle(payload)
+      notify(`Paket bundle baru "${payload.title}" berhasil ditambahkan!`)
+    }
+
+    isBundleModalOpen.value = false
+    await catalogStore.refreshBundles()
+    bundlesList.value = await getBundles()
+  } catch (err) {
+    console.error('Error saving bundle:', err)
+    notify('Gagal menyimpan bundle: ' + err.message, 'error')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function handleDeleteBundle(bundle) {
+  if (!confirm(`Yakin ingin menghapus paket bundle "${bundle.title}"?`)) return
+
+  actionLoading.value = true
+  try {
+    await deleteBundle(bundle.id)
+    notify(`Paket bundle "${bundle.title}" telah dihapus!`)
+    await catalogStore.refreshBundles()
+    bundlesList.value = await getBundles()
+  } catch (err) {
+    console.error('Error deleting bundle:', err)
+    notify('Gagal menghapus bundle: ' + err.message, 'error')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
 // Logout
 async function handleLogout() {
   await authStore.logout()
@@ -748,6 +922,15 @@ async function handleLogout() {
       >
         <Layers class="w-4 h-4" />
         <span>Kategori Koleksi ({{ categoriesList.length }})</span>
+      </button>
+
+      <button
+        @click="activeTab = 'bundles'"
+        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
+        :class="activeTab === 'bundles' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
+      >
+        <Boxes class="w-4 h-4" />
+        <span>Paket Bundling ({{ bundlesList.length }})</span>
       </button>
 
       <button
@@ -1359,6 +1542,132 @@ async function handleLogout() {
 
     </div>
 
+    <!-- TAB 5: BUNDLE PACKAGES MANAGEMENT -->
+    <div v-else-if="activeTab === 'bundles'" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-300 pb-4">
+        <div>
+          <h2 class="font-serif font-bold text-xl text-brand-950 uppercase tracking-tight">
+            Kelola Paket Bundling Eksklusif
+          </h2>
+          <p class="text-xs text-brand-600 font-sans mt-0.5">
+            Atur paket bundle spesial yang tampil di Beranda, termasuk foto, harga promo, teks hemat, dan item di dalam paket.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          @click="openAddBundleModal"
+          class="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-semibold rounded flex items-center gap-2 shadow-sm transition-colors flex-shrink-0"
+        >
+          <Plus class="w-4 h-4" />
+          <span>Tambah Paket Bundle Baru</span>
+        </button>
+      </div>
+
+      <!-- Bundles Admin Cards Grid -->
+      <div v-if="bundlesList.length === 0" class="p-12 text-center bg-white border border-brand-300 rounded font-mono text-xs text-brand-500">
+        Belum ada paket bundling. Klik "+ Tambah Paket Bundle Baru" untuk membuat paket pertama.
+      </div>
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          v-for="b in bundlesList"
+          :key="b.id"
+          class="bg-white border border-brand-300 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+        >
+          <div>
+            <!-- Media Preview -->
+            <div class="relative aspect-[4/3] bg-brand-100 overflow-hidden">
+              <img
+                v-if="b.image"
+                :src="b.image"
+                :alt="b.title"
+                class="w-full h-full object-cover"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-brand-400 font-mono text-xs">
+                Tidak ada foto
+              </div>
+              <div class="absolute top-2 left-2">
+                <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-brand-900/90 text-white font-semibold rounded">
+                  {{ b.badge }}
+                </span>
+              </div>
+              <div class="absolute top-2 right-2">
+                <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-amber-400 text-brand-950 font-bold rounded">
+                  {{ b.savingsText }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Content Details -->
+            <div class="p-4 space-y-3">
+              <div>
+                <h3 class="font-serif font-bold text-base text-brand-950 uppercase leading-snug">
+                  {{ b.title }}
+                </h3>
+                <p class="text-xs font-mono text-brand-500 line-clamp-2 mt-0.5">
+                  {{ b.subtitle }}
+                </p>
+              </div>
+
+              <!-- Price Box -->
+              <div class="p-2.5 bg-brand-50 border border-brand-200 rounded flex items-baseline justify-between text-xs">
+                <div>
+                  <span class="font-mono text-brand-400 line-through block text-[10px]">
+                    {{ catalogStore.formatPrice(b.originalPrice) }}
+                  </span>
+                  <span class="font-mono text-sm font-bold text-brand-950">
+                    {{ catalogStore.formatPrice(b.bundlePrice) }}
+                  </span>
+                </div>
+                <span class="text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  {{ b.savingsText }}
+                </span>
+              </div>
+
+              <!-- Item count & snippet -->
+              <div class="space-y-1.5 pt-1">
+                <span class="text-[10px] font-mono uppercase tracking-wider text-brand-600 font-bold block">
+                  Isi Item Paket ({{ b.items?.length || 0 }} item):
+                </span>
+                <ul class="space-y-1 text-xs text-brand-700">
+                  <li v-for="(it, iIdx) in (b.items || []).slice(0, 3)" :key="iIdx" class="flex items-center gap-1.5 truncate">
+                    <span class="w-1.5 h-1.5 rounded-full bg-scripture-gold flex-shrink-0"></span>
+                    <span class="truncate">{{ it.name }}</span>
+                  </li>
+                  <li v-if="(b.items?.length || 0) > 3" class="text-[10px] font-mono text-brand-400">
+                    +{{ b.items.length - 3 }} item lainnya
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Actions -->
+          <div class="p-4 pt-0 border-t border-brand-100 flex items-center justify-between gap-2 mt-3">
+            <span class="text-[10px] font-mono text-brand-500">Urutan: #{{ b.sort_order }}</span>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="openEditBundleModal(b)"
+                class="px-3 py-1.5 bg-white hover:bg-brand-100 text-brand-800 border border-brand-300 rounded font-mono text-xs flex items-center gap-1.5 transition-colors"
+              >
+                <Edit class="w-3.5 h-3.5" />
+                <span>Edit</span>
+              </button>
+              <button
+                type="button"
+                @click="handleDeleteBundle(b)"
+                class="p-1.5 text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded transition-colors"
+                title="Hapus Paket"
+              >
+                <Trash2 class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL FORM PRODUK (TAMBAH / EDIT) -->
     <div
       v-if="isModalOpen"
@@ -1895,6 +2204,265 @@ async function handleLogout() {
           </button>
         </div>
 
+      </div>
+    </div>
+
+    <!-- MODAL FORM PAKET BUNDLE (TAMBAH / EDIT) -->
+    <div
+      v-if="isBundleModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm"
+      @click.self="isBundleModalOpen = false"
+    >
+      <div class="bg-white border border-brand-300 rounded-xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-brand-200 flex items-center justify-between flex-shrink-0 bg-white">
+          <div class="flex items-center gap-2.5">
+            <Boxes class="w-5 h-5 text-scripture-gold" />
+            <h3 class="font-serif font-bold text-lg sm:text-xl text-brand-950 uppercase tracking-tight">
+              {{ isBundleEditing ? 'Edit Paket Bundling' : 'Tambah Paket Bundling Baru' }}
+            </h3>
+          </div>
+          <button
+            @click="isBundleModalOpen = false"
+            class="p-1.5 text-brand-400 hover:text-brand-900 rounded-md hover:bg-brand-100 transition-colors"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="p-6 overflow-y-auto space-y-6 flex-grow font-sans text-xs">
+          <!-- Title & Subtitle -->
+          <div class="space-y-4">
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase font-semibold">Judul Paket Bundle *</label>
+              <input
+                v-model="bundleForm.title"
+                type="text"
+                required
+                placeholder="Contoh: The Sabbath Essential Set"
+                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-medium"
+              />
+            </div>
+
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase font-semibold">Sub-judul / Ringkasan Isi</label>
+              <input
+                v-model="bundleForm.subtitle"
+                type="text"
+                placeholder="Contoh: Heavyweight Boxy Tee + Corduroy Cap + Free Sticker Pack"
+                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950"
+              />
+            </div>
+          </div>
+
+          <!-- Badge & Presets -->
+          <div class="space-y-2">
+            <label class="block font-mono text-brand-700 uppercase font-semibold">Badge / Label Promosi</label>
+            <input
+              v-model="bundleForm.badge"
+              type="text"
+              placeholder="Contoh: BEST VALUE"
+              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+            />
+            <div class="flex items-center gap-1.5 flex-wrap pt-1">
+              <span class="text-[10px] font-mono text-brand-500">Pilihan Cepat:</span>
+              <button
+                v-for="p in bundleBadgePresets"
+                :key="p"
+                type="button"
+                @click="bundleForm.badge = p"
+                class="px-2 py-0.5 text-[10px] font-mono rounded border transition-colors"
+                :class="bundleForm.badge === p ? 'bg-brand-900 text-white border-brand-900' : 'bg-brand-100 hover:bg-brand-200 border-brand-300 text-brand-700'"
+              >
+                {{ p }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Bundle Image (Upload or URL) -->
+          <div class="space-y-2 border-t border-brand-200 pt-4">
+            <label class="block font-mono text-brand-700 uppercase font-semibold">Foto Paket Bundle *</label>
+            <div class="flex flex-col sm:flex-row gap-4 items-start">
+              <div class="w-32 h-32 aspect-[4/5] bg-brand-100 border border-brand-300 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                <img
+                  v-if="bundleForm.image"
+                  :src="bundleForm.image"
+                  alt="Bundle Image"
+                  class="w-full h-full object-cover"
+                />
+                <span v-else class="text-[10px] font-mono text-brand-400 text-center p-2">Belum ada foto</span>
+              </div>
+              <div class="space-y-3 flex-grow w-full">
+                <div>
+                  <label class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-brand-50 border border-brand-300 rounded text-brand-900 font-mono text-xs shadow-sm">
+                    <Upload class="w-4 h-4 text-brand-600" />
+                    <span>{{ isUploadingBundleImage ? 'Mengunggah...' : 'Upload Foto Bundle' }}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      class="hidden"
+                      :disabled="isUploadingBundleImage"
+                      @change="handleBundleImageUpload"
+                    />
+                  </label>
+                </div>
+                <div class="space-y-1">
+                  <span class="text-[10px] font-mono text-brand-500 block">Atau masukkan URL Foto langsung:</span>
+                  <input
+                    v-model="bundleForm.image"
+                    type="url"
+                    placeholder="https://images.unsplash.com/..."
+                    class="w-full px-3 py-1.5 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pricing & Savings -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-brand-200 pt-4">
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase font-semibold">Harga Normal (Asli)</label>
+              <input
+                v-model.number="bundleForm.originalPrice"
+                type="number"
+                min="0"
+                step="5000"
+                @input="updateBundleSavingsText"
+                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+              />
+            </div>
+
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase font-semibold">Harga Promo Bundle</label>
+              <input
+                v-model.number="bundleForm.bundlePrice"
+                type="number"
+                min="0"
+                step="5000"
+                @input="updateBundleSavingsText"
+                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono font-bold"
+              />
+            </div>
+
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase font-semibold">Teks Hemat</label>
+              <input
+                v-model="bundleForm.savingsText"
+                type="text"
+                placeholder="Hemat Rp50.000"
+                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+              />
+            </div>
+          </div>
+
+          <!-- Inclusions Repeater (Rincian Item) -->
+          <div class="space-y-3 border-t border-brand-200 pt-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="block font-mono text-brand-900 uppercase font-semibold">Rincian Item Termasuk Dalam Paket</label>
+                <p class="text-[11px] text-brand-500 font-mono">Item ini akan tampil di dalam tombol "Lihat Rincian Item" pada beranda.</p>
+              </div>
+              <button
+                type="button"
+                @click="addBundleItem"
+                class="px-3 py-1 bg-brand-100 hover:bg-brand-200 border border-brand-300 rounded text-brand-900 font-mono text-xs flex items-center gap-1.5"
+              >
+                <Plus class="w-3.5 h-3.5" />
+                <span>Tambah Item</span>
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              <div
+                v-for="(item, idx) in bundleForm.items"
+                :key="idx"
+                class="p-3 bg-brand-50 border border-brand-200 rounded space-y-2 relative"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="font-mono text-[11px] text-brand-600 font-bold uppercase">
+                    Item #{{ idx + 1 }}
+                  </span>
+                  <button
+                    type="button"
+                    @click="removeBundleItem(idx)"
+                    class="p-1 text-rose-600 hover:text-rose-800 rounded hover:bg-rose-50 transition-colors"
+                    title="Hapus Item Ini"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <span class="text-[10px] font-mono text-brand-500 block mb-0.5">Nama Item *</span>
+                    <input
+                      v-model="item.name"
+                      type="text"
+                      placeholder="Contoh: Heavyweight Boxy Tee"
+                      class="w-full px-2.5 py-1.5 bg-white border border-brand-300 rounded text-brand-950 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <span class="text-[10px] font-mono text-brand-500 block mb-0.5">Detail / Bahan / Catatan</span>
+                    <input
+                      v-model="item.detail"
+                      type="text"
+                      placeholder="Contoh: Katun 16s 235 GSM (Size S-XL)"
+                      class="w-full px-2.5 py-1.5 bg-white border border-brand-300 rounded text-brand-950 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sort order & Active toggle -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-brand-200 pt-4">
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase font-semibold">Urutan Tampil (Sort Order)</label>
+              <input
+                v-model.number="bundleForm.sort_order"
+                type="number"
+                min="1"
+                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+              />
+            </div>
+
+            <div class="flex items-center gap-3 pt-5">
+              <input
+                id="bundle-active"
+                v-model="bundleForm.is_active"
+                type="checkbox"
+                class="w-4 h-4 rounded text-brand-900 border-brand-300 focus:ring-brand-900"
+              />
+              <label for="bundle-active" class="font-mono text-brand-800 text-xs select-none">
+                Aktifkan & Tampilkan di Beranda
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 border-t border-brand-200 bg-white flex items-center justify-end gap-3 flex-shrink-0">
+          <button
+            type="button"
+            @click="isBundleModalOpen = false"
+            class="px-4 py-2 text-xs font-mono uppercase tracking-wider text-brand-600 hover:bg-brand-100 rounded"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            :disabled="actionLoading || isUploadingBundleImage"
+            @click="handleSaveBundle"
+            class="px-6 py-2 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-bold rounded flex items-center gap-2 shadow-sm transition-colors"
+          >
+            <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />
+            <span>{{ isBundleEditing ? 'Simpan Perubahan' : 'Buat Paket Bundle' }}</span>
+          </button>
+        </div>
       </div>
     </div>
 
