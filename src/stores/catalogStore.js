@@ -5,10 +5,12 @@ import {
   getProducts,
   getLookbooks,
   getStoreSettings,
+  getResolvedShowcaseCards,
 } from '../services/catalogService'
 
 export const useCatalogStore = defineStore('catalog', () => {
   const categories = ref([])
+  const homepageShowcaseCards = ref([])
   const products = ref([])
   const featuredProducts = ref([])
   const lookbooks = ref([])
@@ -76,6 +78,7 @@ export const useCatalogStore = defineStore('catalog', () => {
       ])
 
       categories.value = cats
+      homepageShowcaseCards.value = getResolvedShowcaseCards(cats)
       products.value = prods
       featuredProducts.value = prods.filter((p) => p.is_featured)
       lookbooks.value = books
@@ -106,8 +109,20 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  // Refresh categories list and showcase cards (e.g. after admin update)
+  async function refreshCategories() {
+    try {
+      const cats = await getCategories()
+      categories.value = cats
+      homepageShowcaseCards.value = getResolvedShowcaseCards(cats)
+    } catch (err) {
+      console.error('Error refreshing categories:', err)
+    }
+  }
+
   return {
     categories,
+    homepageShowcaseCards,
     products,
     featuredProducts,
     lookbooks,
@@ -123,5 +138,6 @@ export const useCatalogStore = defineStore('catalog', () => {
     formatPrice,
     initStore,
     refreshProducts,
+    refreshCategories,
   }
 })

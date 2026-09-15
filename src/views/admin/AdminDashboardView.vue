@@ -13,6 +13,14 @@ import {
   adminGetLookbooks,
   updateLookbook,
   createLookbook,
+  adminGetCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getResolvedShowcaseCards,
+  updateHomepageShowcaseCard,
+  addHomepageShowcaseCard,
+  deleteHomepageShowcaseCard,
 } from '../../services/adminService'
 import {
   Package,
@@ -26,17 +34,67 @@ import {
   Loader2,
   ExternalLink,
   Camera,
+  Layers,
+  Sparkles,
+  Copy,
+  Check,
+  CheckCircle2,
+  LayoutGrid,
+  FolderTree,
+  Link as LinkIcon,
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const catalogStore = useCatalogStore()
 
-const activeTab = ref('products') // 'products' | 'settings'
+const activeTab = ref('products') // 'products' | 'categories' | 'settings' | 'lookbook'
 const productsList = ref([])
+const categoriesList = ref([])
+const showcaseCardsList = ref([])
 const loading = ref(false)
 const actionLoading = ref(false)
 const notification = ref({ type: '', text: '' })
+
+// Master Category & Homepage Showcase State
+const activeCategorySubTab = ref('showcase') // 'showcase' | 'master'
+
+// 1. Master Category Modal State
+const isMasterCategoryModalOpen = ref(false)
+const masterCategoryForm = ref({
+  name: '',
+  slug: '',
+  description: '',
+  sort_order: 1,
+})
+
+// 2. Homepage Showcase Card Modal State
+const isShowcaseModalOpen = ref(false)
+const isShowcaseEditing = ref(false)
+const editShowcaseId = ref(null)
+const isUploadingShowcaseImage = ref(false)
+
+const showcaseForm = ref({
+  category_id: '',
+  category_slug: '',
+  title: '',
+  tag: '',
+  description: '',
+  image: '',
+  badge: '',
+  button_text: '',
+  sort_order: 1,
+})
+
+const badgePresets = ['HOT DROP', 'BESTSELLER', 'ESSENTIALS', 'NEW MERCH', 'STREET CUT', 'LIMITED DROP']
+
+function getProductCountForCategory(catId) {
+  return productsList.value.filter((p) => p.category_id === catId || p.category?.id === catId).length
+}
+
+function isCategoryUsedInShowcase(cat) {
+  return showcaseCardsList.value.some((c) => c.category_id === cat.id || c.category_slug === cat.slug)
+}
 
 // Modal Form State
 const isModalOpen = ref(false)
@@ -100,11 +158,14 @@ async function loadAdminData() {
   loading.value = true
   try {
     await catalogStore.initStore()
-    const [prods, books] = await Promise.all([
+    const [prods, books, cats] = await Promise.all([
       adminGetProducts(),
       adminGetLookbooks().catch(() => []),
+      adminGetCategories().catch(() => []),
     ])
     productsList.value = prods
+    categoriesList.value = cats
+    showcaseCardsList.value = getResolvedShowcaseCards(cats)
 
     settingsForm.value = {
       brand_name: catalogStore.storeSettings.brand_name || '',
@@ -134,6 +195,200 @@ async function loadAdminData() {
   }
 }
 
+// ==============================================================================
+// 1. MASTER CATEGORIES HANDLERS (Tambah & Hapus Kategori Pakaian)
+// ==============================================================================
+
+function openAddMasterCategoryModal() {
+  masterCategoryForm.value = {
+    name: '',
+    slug: '',
+    description: '',
+    sort_order: categoriesList.value.length + 1,
+  }
+  isMasterCategoryModalOpen.value = true
+}
+
+function generateMasterCategorySlug() {
+  if (masterCategoryForm.value.name) {
+    masterCategoryForm.value.slug = masterCategoryForm.value.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+  }
+}
+
+async function handleSaveMasterCategory() {
+  if (!masterCategoryForm.value.name) {
+    notify('Mohon isi nama kategori!', 'error')
+    return
+  }
+
+  actionLoading.value = true
+  try {
+    const payload = {
+      name: masterCategoryForm.value.name,
+      slug: (masterCategoryForm.value.slug || masterCategoryForm.value.name)
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-'),
+      description: masterCategoryForm.value.description || '',
+      sort_order: Number(masterCategoryForm.value.sort_order) || categoriesList.value.length + 1,
+    }
+
+    await createCategory(payload)
+    notify(`Kategori "${payload.name}" berhasil dibuat!`)
+    isMasterCategoryModalOpen.value = false
+    await catalogStore.refreshCategories()
+    categoriesList.value = await adminGetCategories()
+    showcaseCardsList.value = getResolvedShowcaseCards(categoriesList.value)
+  } catch (err) {
+    console.error('Error creating category:', err)
+    notify('Gagal membuat kategori: ' + err.message, 'error')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function handleDeleteMasterCategory(cat) {
+  const isUsed = productsList.value.some((p) => p.category_id === cat.id || p.category?.id === cat.id)
+  const isUsedInShowcase = showcaseCardsList.value.some((c) => c.category_id === cat.id || c.category_slug === cat.slug)
+
+  let warning = `Yakin ingin menghapus kategori "${cat.name}"?`
+  if (isUsed && isUsedInShowcase) {
+    warning = `Kategori "${cat.name}" sedang digunakan oleh beberapa produk pakaian dan juga ditampilkan di Homepage. Jika dihapus, produk tersebut akan menjadi Tanpa Kategori. Tetap hapus?`
+  } else if (isUsed) {
+    warning = `Kategori "${cat.name}" sedang digunakan oleh produk pakaian di katalog. Jika dihapus, produk tersebut menjadi Tanpa Kategori. Tetap hapus?`
+  }
+
+  if (!confirm(warning)) return
+
+  actionLoading.value = true
+  try {
+    await deleteCategory(cat.id)
+    notify(`Kategori "${cat.name}" berhasil dihapus!`)
+    await catalogStore.refreshCategories()
+    categoriesList.value = await adminGetCategories()
+    showcaseCardsList.value = getResolvedShowcaseCards(categoriesList.value)
+  } catch (err) {
+    console.error('Error deleting category:', err)
+    notify('Gagal menghapus kategori: ' + err.message, 'error')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+// ==============================================================================
+// 2. HOMEPAGE SHOWCASE CARDS HANDLERS (Kategori Koleksi di Homepage)
+// ==============================================================================
+
+function openEditShowcaseModal(card) {
+  isShowcaseEditing.value = true
+  editShowcaseId.value = card.id
+  showcaseForm.value = {
+    category_id: card.category_id || (categoriesList.value[0]?.id || ''),
+    category_slug: card.category_slug || '',
+    title: card.title || '',
+    tag: card.tag || '',
+    description: card.description || '',
+    image: card.image || '',
+    badge: card.badge || '',
+    button_text: card.button_text || '',
+    sort_order: card.sort_order || 1,
+  }
+  isShowcaseModalOpen.value = true
+}
+
+function openAddShowcaseModal() {
+  isShowcaseEditing.value = false
+  editShowcaseId.value = null
+  const defaultCat = categoriesList.value[0] || null
+  const nextOrder = showcaseCardsList.value.length + 1
+  showcaseForm.value = {
+    category_id: defaultCat?.id || '',
+    category_slug: defaultCat?.slug || '',
+    title: defaultCat?.name || '',
+    tag: `0${nextOrder} // KOLEKSI BARU`,
+    description: defaultCat?.description || '',
+    image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80',
+    badge: 'NEW DROP',
+    button_text: defaultCat?.name || 'Koleksi',
+    sort_order: nextOrder,
+  }
+  isShowcaseModalOpen.value = true
+}
+
+function onShowcaseCategoryChange() {
+  const selectedCat = categoriesList.value.find((c) => c.id === showcaseForm.value.category_id)
+  if (selectedCat) {
+    showcaseForm.value.category_slug = selectedCat.slug
+    if (!showcaseForm.value.title || !isShowcaseEditing.value) {
+      showcaseForm.value.title = selectedCat.name
+    }
+    if (!showcaseForm.value.button_text || !isShowcaseEditing.value) {
+      showcaseForm.value.button_text = selectedCat.name
+    }
+    if (!showcaseForm.value.description && selectedCat.description) {
+      showcaseForm.value.description = selectedCat.description
+    }
+  }
+}
+
+async function handleShowcaseImageUpload(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  isUploadingShowcaseImage.value = true
+  try {
+    const publicUrl = await uploadImage(file, 'products')
+    showcaseForm.value.image = publicUrl
+    notify('Foto kartu koleksi berhasil diunggah!')
+  } catch (err) {
+    notify('Gagal unggah foto: ' + err.message, 'error')
+  } finally {
+    isUploadingShowcaseImage.value = false
+    e.target.value = ''
+  }
+}
+
+async function handleSaveShowcaseCard() {
+  if (!showcaseForm.value.category_id) {
+    notify('Mohon pilih kategori yang ingin dihubungkan!', 'error')
+    return
+  }
+
+  actionLoading.value = true
+  try {
+    if (isShowcaseEditing.value && editShowcaseId.value) {
+      updateHomepageShowcaseCard(editShowcaseId.value, showcaseForm.value, categoriesList.value)
+      notify('Kartu Kategori Koleksi Homepage berhasil diperbarui!')
+    } else {
+      addHomepageShowcaseCard(showcaseForm.value, categoriesList.value)
+      notify('Kartu Kategori Koleksi Homepage berhasil ditambahkan!')
+    }
+
+    isShowcaseModalOpen.value = false
+    await catalogStore.refreshCategories()
+    showcaseCardsList.value = getResolvedShowcaseCards(categoriesList.value)
+  } catch (err) {
+    console.error('Error saving showcase card:', err)
+    notify('Gagal menyimpan kartu koleksi: ' + err.message, 'error')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+function handleDeleteShowcaseCard(card) {
+  if (!confirm(`Hapus kartu koleksi "${card.title}" dari Homepage? (Kategori masternya tidak akan terhapus).`)) return
+
+  deleteHomepageShowcaseCard(card.id, categoriesList.value)
+  notify(`Kartu koleksi "${card.title}" dihapus dari Homepage!`)
+  catalogStore.refreshCategories()
+  showcaseCardsList.value = getResolvedShowcaseCards(categoriesList.value)
+}
+
 onMounted(() => {
   loadAdminData()
 })
@@ -147,7 +402,7 @@ function openAddModal() {
     slug: '',
     description: '',
     price: 185000,
-    category_id: catalogStore.categories[0]?.id || '',
+    category_id: categoriesList.value[0]?.id || '',
     status: 'active',
     is_featured: false,
     images: [],
@@ -476,10 +731,10 @@ async function handleLogout() {
     </div>
 
     <!-- TABS BAR -->
-    <div class="flex items-center gap-6 border-b border-brand-300 font-mono text-xs">
+    <div class="flex items-center gap-6 border-b border-brand-300 font-mono text-xs overflow-x-auto">
       <button
         @click="activeTab = 'products'"
-        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2"
+        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
         :class="activeTab === 'products' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
       >
         <Package class="w-4 h-4" />
@@ -487,8 +742,17 @@ async function handleLogout() {
       </button>
 
       <button
+        @click="activeTab = 'categories'"
+        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
+        :class="activeTab === 'categories' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
+      >
+        <Layers class="w-4 h-4" />
+        <span>Kategori Koleksi ({{ categoriesList.length }})</span>
+      </button>
+
+      <button
         @click="activeTab = 'settings'"
-        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2"
+        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
         :class="activeTab === 'settings' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
       >
         <Settings class="w-4 h-4" />
@@ -497,7 +761,7 @@ async function handleLogout() {
 
       <button
         @click="activeTab = 'lookbook'"
-        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2"
+        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
         :class="activeTab === 'lookbook' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
       >
         <Camera class="w-4 h-4" />
@@ -840,6 +1104,261 @@ async function handleLogout() {
       </form>
     </div>
 
+    <!-- TAB 4: KATEGORI & KOLEKSI HOMEPAGE -->
+    <div v-else-if="activeTab === 'categories'" class="space-y-6">
+      
+      <!-- Top Header -->
+      <div class="border-b border-brand-300 pb-4">
+        <h2 class="font-serif font-bold text-xl text-brand-950 uppercase tracking-tight">
+          Kategori Pakaian & Koleksi Homepage
+        </h2>
+        <p class="text-xs text-brand-600 font-sans mt-0.5">
+          Kelola master kategori pakaian untuk produk di katalog, dan atur kartu showcase "Kategori Koleksi" yang tampil di Beranda.
+        </p>
+      </div>
+
+      <!-- Sub-Tab Navigation Pills -->
+      <div class="flex items-center gap-3 border-b border-brand-200 pb-3">
+        <button
+          type="button"
+          @click="activeCategorySubTab = 'showcase'"
+          class="px-4 py-2 text-xs font-mono rounded-md flex items-center gap-2 transition-all font-semibold shadow-xs"
+          :class="activeCategorySubTab === 'showcase' ? 'bg-brand-900 text-white' : 'bg-white text-brand-700 border border-brand-300 hover:bg-brand-100'"
+        >
+          <LayoutGrid class="w-3.5 h-3.5" />
+          <span>✦ Kartu Koleksi Homepage ({{ showcaseCardsList.length }})</span>
+        </button>
+
+        <button
+          type="button"
+          @click="activeCategorySubTab = 'master'"
+          class="px-4 py-2 text-xs font-mono rounded-md flex items-center gap-2 transition-all font-semibold shadow-xs"
+          :class="activeCategorySubTab === 'master' ? 'bg-brand-900 text-white' : 'bg-white text-brand-700 border border-brand-300 hover:bg-brand-100'"
+        >
+          <FolderTree class="w-3.5 h-3.5" />
+          <span>📁 Master Kategori Pakaian ({{ categoriesList.length }})</span>
+        </button>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- VIEW 1: HOMEPAGE SHOWCASE CARDS (Koleksi Beranda Berdasarkan Kategori)     -->
+      <!-- ========================================================================= -->
+      <div v-if="activeCategorySubTab === 'showcase'" class="space-y-6">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-brand-100/50 p-4 rounded-lg border border-brand-300">
+          <div>
+            <span class="font-mono text-xs font-bold text-brand-900 uppercase block">
+              Pengaturan Kartu Koleksi di Homepage
+            </span>
+            <p class="text-[11px] text-brand-600 mt-0.5">
+              Setiap kartu di bawah ini terhubung ke salah satu <strong>Master Kategori</strong>. Anda bisa mengubah kategori yang dihubungkan, foto editorial, badge (HOT DROP, BESTSELLER), sub-tag, dan tombol aksi.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            @click="openAddShowcaseModal"
+            class="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-semibold rounded flex items-center gap-2 shadow-sm transition-colors flex-shrink-0"
+          >
+            <Plus class="w-4 h-4" />
+            <span>Tambah Kartu Koleksi</span>
+          </button>
+        </div>
+
+        <!-- Showcase Cards Grid (Preview exact homepage card look!) -->
+        <div v-if="showcaseCardsList.length === 0" class="p-12 text-center bg-white border border-brand-300 rounded font-mono text-xs text-brand-500">
+          Belum ada kartu koleksi untuk Homepage. Klik "+ Tambah Kartu Koleksi" untuk menambahkan.
+        </div>
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div
+            v-for="card in showcaseCardsList"
+            :key="card.id"
+            class="group relative bg-white border border-brand-300 rounded overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <!-- Image Frame -->
+              <div class="relative aspect-[4/5] overflow-hidden bg-brand-100">
+                <img
+                  :src="card.image"
+                  :alt="card.title"
+                  class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+
+                <!-- Top Badge -->
+                <div class="absolute top-3 left-3">
+                  <span class="px-2.5 py-1 text-[10px] font-mono tracking-widest uppercase bg-white/95 text-brand-900 font-semibold rounded shadow-sm">
+                    {{ card.badge || 'COLLECTION' }}
+                  </span>
+                </div>
+
+                <!-- Sort Order Badge -->
+                <div class="absolute top-3 right-3">
+                  <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-black/60 text-white rounded">
+                    #{{ card.sort_order }}
+                  </span>
+                </div>
+
+                <!-- Bottom Floating Overlay Title -->
+                <div class="absolute bottom-4 left-4 right-4 text-white">
+                  <span class="font-mono text-[10px] uppercase tracking-widest text-scripture-sand block mb-0.5">
+                    {{ card.tag || 'SHOWCASE' }}
+                  </span>
+                  <h3 class="font-serif font-bold text-xl uppercase leading-tight tracking-wide drop-shadow-sm">
+                    {{ card.title }}
+                  </h3>
+                </div>
+              </div>
+
+              <!-- Linked Category Banner -->
+              <div class="px-3.5 py-2 bg-emerald-50 border-b border-emerald-200/70 text-[11px] font-mono text-emerald-900 flex items-center gap-1.5">
+                <LinkIcon class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                <span class="truncate">
+                  Kategori: <strong>{{ card.category_name }}</strong> (<code>/{{ card.category_slug }}</code>)
+                </span>
+              </div>
+
+              <!-- Meta & Description -->
+              <div class="p-4 space-y-3 bg-white">
+                <p class="text-xs text-brand-600 leading-relaxed font-sans line-clamp-2">
+                  {{ card.description || 'Tidak ada deskripsi' }}
+                </p>
+
+                <div class="flex items-center justify-between text-[11px] font-mono text-brand-500 border-t border-brand-100 pt-2">
+                  <span>Tombol Homepage:</span>
+                  <span class="text-scripture-bronze font-semibold">"Jelajahi {{ card.button_text }}"</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Action Buttons -->
+            <div class="p-3 bg-brand-50/80 border-t border-brand-200 flex items-center justify-end gap-2">
+              <button
+                @click="openEditShowcaseModal(card)"
+                class="px-3 py-1.5 bg-brand-900 hover:bg-brand-800 text-white text-xs font-mono rounded flex items-center gap-1 shadow-xs transition-colors"
+                title="Edit Tampilan & Kategori Terkait"
+              >
+                <Edit class="w-3.5 h-3.5" />
+                <span>Edit Kartu</span>
+              </button>
+              <button
+                @click="handleDeleteShowcaseCard(card)"
+                class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded transition-colors"
+                title="Hapus Kartu Koleksi"
+              >
+                <Trash2 class="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- VIEW 2: MASTER CATEGORIES TABLE (Kelola Kategori Pakaian)                  -->
+      <!-- ========================================================================= -->
+      <div v-else-if="activeCategorySubTab === 'master'" class="space-y-4">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-brand-100/50 p-4 rounded-lg border border-brand-300">
+          <div>
+            <span class="font-mono text-xs font-bold text-brand-900 uppercase block">
+              Daftar Master Kategori Pakaian
+            </span>
+            <p class="text-[11px] text-brand-600 mt-0.5">
+              Daftar kategori utama yang digunakan saat membuat/mengedit pakaian di Katalog. Kategori yang Anda tambahkan di sini bisa langsung dipilih pada produk dan kartu koleksi Homepage.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            @click="openAddMasterCategoryModal"
+            class="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-semibold rounded flex items-center gap-2 shadow-sm transition-colors flex-shrink-0"
+          >
+            <Plus class="w-4 h-4" />
+            <span>Tambah Master Kategori</span>
+          </button>
+        </div>
+
+        <!-- Master Categories Table -->
+        <div class="bg-white border border-brand-300 rounded shadow-sm overflow-hidden">
+          <table class="w-full text-left font-sans text-xs">
+            <thead class="bg-brand-100/70 text-brand-700 font-mono uppercase border-b border-brand-300">
+              <tr>
+                <th class="p-3.5">Nama Kategori</th>
+                <th class="p-3.5">Slug URL</th>
+                <th class="p-3.5">Deskripsi</th>
+                <th class="p-3.5">Produk Aktif</th>
+                <th class="p-3.5">Status di Homepage</th>
+                <th class="p-3.5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-brand-200 text-brand-800">
+              <tr v-if="categoriesList.length === 0">
+                <td colspan="6" class="p-10 text-center text-brand-500 font-mono">
+                  Belum ada master kategori di database. Klik tombol "Tambah Master Kategori" untuk membuat kategori baru.
+                </td>
+              </tr>
+              <tr
+                v-for="cat in categoriesList"
+                :key="cat.id"
+                class="hover:bg-brand-50 transition-colors"
+              >
+                <!-- Name -->
+                <td class="p-3.5 font-bold text-brand-950 font-serif text-sm">
+                  {{ cat.name }}
+                </td>
+
+                <!-- Slug -->
+                <td class="p-3.5 font-mono text-brand-700">
+                  <span class="px-2 py-0.5 bg-brand-100 rounded text-[11px]">/{{ cat.slug }}</span>
+                </td>
+
+                <!-- Description -->
+                <td class="p-3.5 text-brand-600 max-w-xs truncate">
+                  {{ cat.description || '-' }}
+                </td>
+
+                <!-- Product count -->
+                <td class="p-3.5 font-mono">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-brand-100 text-brand-800">
+                    {{ getProductCountForCategory(cat.id) }} Artikel
+                  </span>
+                </td>
+
+                <!-- Homepage status -->
+                <td class="p-3.5 font-mono text-[11px]">
+                  <span
+                    v-if="isCategoryUsedInShowcase(cat)"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded font-semibold"
+                  >
+                    <Check class="w-3 h-3 text-emerald-600" />
+                    <span>Aktif di Homepage</span>
+                  </span>
+                  <span v-else class="text-brand-400">
+                    -
+                  </span>
+                </td>
+
+                <!-- Delete Action -->
+                <td class="p-3.5 text-right">
+                  <button
+                    @click="handleDeleteMasterCategory(cat)"
+                    class="p-1.5 text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded shadow-sm transition-colors"
+                    title="Hapus Kategori"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div>
+
     <!-- MODAL FORM PRODUK (TAMBAH / EDIT) -->
     <div
       v-if="isModalOpen"
@@ -894,18 +1413,21 @@ async function handleLogout() {
             </div>
 
             <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase">Kategori</label>
+              <div class="flex items-center justify-between">
+                <label class="block font-mono text-brand-700 uppercase">Kategori Pakaian</label>
+                <span class="text-[10px] font-mono text-brand-500">Master Kategori</span>
+              </div>
               <select
                 v-model="form.category_id"
                 class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono cursor-pointer"
               >
-                <option value="">Pilih Kategori</option>
+                <option value="">-- Tanpa Kategori --</option>
                 <option
-                  v-for="cat in catalogStore.categories"
+                  v-for="cat in categoriesList"
                   :key="cat.id"
                   :value="cat.id"
                 >
-                  {{ cat.name }}
+                  {{ cat.name }} (/{{ cat.slug }})
                 </option>
               </select>
             </div>
@@ -1078,6 +1600,303 @@ async function handleLogout() {
       </div>
     </div>
 
+    <!-- MODAL 1: ATUR KARTU KOLEKSI HOMEPAGE -->
+    <div
+      v-if="isShowcaseModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm"
+      @click.self="isShowcaseModalOpen = false"
+    >
+      <div class="bg-white border border-brand-300 rounded-xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+        
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-brand-200 flex items-center justify-between flex-shrink-0 bg-white">
+          <div class="flex items-center gap-2.5">
+            <LayoutGrid class="w-5 h-5 text-brand-800" />
+            <div>
+              <h2 class="font-serif font-bold text-lg text-brand-950 uppercase">
+                {{ isShowcaseEditing ? 'Edit Kartu Koleksi Homepage' : 'Tambah Kartu Koleksi Homepage' }}
+              </h2>
+              <p class="text-xs text-brand-500 font-mono">
+                Hubungkan kartu showcase ini ke salah satu Master Kategori yang ada
+              </p>
+            </div>
+          </div>
+          <button
+            @click="isShowcaseModalOpen = false"
+            class="p-1.5 text-brand-400 hover:text-brand-900 rounded"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- Modal Body Scrollable -->
+        <form
+          id="showcaseCardForm"
+          @submit.prevent="handleSaveShowcaseCard"
+          class="p-6 space-y-4 overflow-y-auto font-sans text-xs flex-grow"
+        >
+          <!-- 1. Hubungkan ke Master Kategori -->
+          <div class="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-lg space-y-1.5">
+            <label class="block font-mono text-emerald-950 uppercase font-bold flex items-center gap-1.5">
+              <LinkIcon class="w-3.5 h-3.5 text-emerald-600" />
+              <span>Hubungkan ke Kategori Pakaian (Wajib) *</span>
+            </label>
+            <select
+              v-model="showcaseForm.category_id"
+              @change="onShowcaseCategoryChange"
+              required
+              class="w-full px-3 py-2 bg-white border border-emerald-300 rounded text-brand-950 font-mono font-medium cursor-pointer"
+            >
+              <option value="" disabled>-- Pilih Kategori yang Sudah Ada --</option>
+              <option
+                v-for="cat in categoriesList"
+                :key="cat.id"
+                :value="cat.id"
+              >
+                {{ cat.name }} (Slug URL: /{{ cat.slug }})
+              </option>
+            </select>
+            <p class="text-[11px] text-emerald-800 font-mono">
+              Ketika kartu ini diklik di Beranda, pengunjung akan diarahkan ke katalog dengan filter kategori <code>/{{ showcaseForm.category_slug || 'kategori' }}</code>.
+            </p>
+          </div>
+
+          <!-- Judul Kartu & Sub-Tag -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase">Judul Kartu di Beranda *</label>
+              <input
+                v-model="showcaseForm.title"
+                type="text"
+                required
+                placeholder="Misal: Jackets & Outerwear"
+                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-medium"
+              />
+            </div>
+
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase">Sub-Tag Header</label>
+              <input
+                v-model="showcaseForm.tag"
+                type="text"
+                placeholder="01 // OUTERWEAR"
+                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono uppercase"
+              />
+            </div>
+          </div>
+
+          <!-- Badge Showcase -->
+          <div class="space-y-1">
+            <label class="block font-mono text-brand-700 uppercase">Badge Label (Pojok Kiri Atas)</label>
+            <input
+              v-model="showcaseForm.badge"
+              type="text"
+              placeholder="HOT DROP / BESTSELLER"
+              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono uppercase"
+            />
+            <!-- Preset Badges -->
+            <div class="flex flex-wrap gap-1 pt-1">
+              <button
+                type="button"
+                v-for="b in badgePresets"
+                :key="b"
+                @click="showcaseForm.badge = b"
+                class="text-[10px] font-mono px-2 py-0.5 bg-brand-100 hover:bg-brand-200 text-brand-800 rounded border border-brand-200 transition-colors"
+              >
+                {{ b }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Deskripsi Ringkas -->
+          <div class="space-y-1">
+            <label class="block font-mono text-brand-700 uppercase">Deskripsi Bahan & Potongan</label>
+            <textarea
+              v-model="showcaseForm.description"
+              rows="2"
+              placeholder="Zip hoodies 380 GSM, coaches jacket, dan rajut katun tebal."
+              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 leading-relaxed font-sans"
+            ></textarea>
+          </div>
+
+          <!-- Tombol Text & Sort Order -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase">Teks Tombol Aksi</label>
+              <div class="flex items-center gap-1 bg-brand-50 border border-brand-300 rounded px-3 py-2">
+                <span class="text-brand-500 font-mono text-xs">Jelajahi</span>
+                <input
+                  v-model="showcaseForm.button_text"
+                  type="text"
+                  placeholder="Outerwear"
+                  class="bg-transparent border-none outline-none text-brand-950 font-medium w-full text-xs"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <label class="block font-mono text-brand-700 uppercase">Urutan Tampil (Posisi Kartu)</label>
+              <input
+                v-model.number="showcaseForm.sort_order"
+                type="number"
+                min="1"
+                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+              />
+            </div>
+          </div>
+
+          <!-- Cover Image Upload & URL -->
+          <div class="space-y-2 pt-2 border-t border-brand-200">
+            <label class="block font-mono text-brand-700 uppercase">Foto Cover Showcase</label>
+            
+            <div class="flex items-center gap-3">
+              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-brand-50 border border-brand-300 rounded text-brand-900 font-mono text-xs shadow-sm">
+                <Upload class="w-4 h-4 text-brand-600" />
+                <span>{{ isUploadingShowcaseImage ? 'Mengunggah ke Cloud...' : 'Unggah Foto dari Komputer' }}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  class="hidden"
+                  :disabled="isUploadingShowcaseImage"
+                  @change="handleShowcaseImageUpload"
+                />
+              </label>
+              <span class="text-[11px] text-brand-500 font-mono">atau tempel link URL foto di bawah</span>
+            </div>
+
+            <input
+              v-model="showcaseForm.image"
+              type="url"
+              placeholder="https://images.unsplash.com/... atau URL gambar lainnya"
+              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono text-xs"
+            />
+
+            <!-- Live Image Preview -->
+            <div v-if="showcaseForm.image" class="relative w-full h-36 bg-brand-100 border border-brand-300 rounded overflow-hidden mt-2">
+              <img :src="showcaseForm.image" class="w-full h-full object-cover" />
+              <div class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white font-mono text-[10px] rounded">
+                Preview Foto Cover
+              </div>
+            </div>
+          </div>
+
+        </form>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 border-t border-brand-200 bg-brand-50/80 flex items-center justify-end gap-3 flex-shrink-0">
+          <button
+            type="button"
+            @click="isShowcaseModalOpen = false"
+            class="px-5 py-2.5 font-mono text-xs text-brand-600 hover:text-brand-900 font-medium"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            form="showcaseCardForm"
+            :disabled="actionLoading || isUploadingShowcaseImage"
+            class="px-6 py-2.5 font-mono text-xs uppercase bg-brand-900 text-white hover:bg-brand-800 font-bold rounded flex items-center gap-2 shadow"
+          >
+            <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />
+            <span>{{ isShowcaseEditing ? 'Simpan Kartu Koleksi' : 'Buat Kartu Koleksi' }}</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL 2: TAMBAH MASTER KATEGORI BARU -->
+    <div
+      v-if="isMasterCategoryModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm"
+      @click.self="isMasterCategoryModalOpen = false"
+    >
+      <div class="bg-white border border-brand-300 rounded-xl max-w-md w-full shadow-2xl overflow-hidden">
+        
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-brand-200 flex items-center justify-between bg-white">
+          <div class="flex items-center gap-2.5">
+            <FolderTree class="w-5 h-5 text-brand-800" />
+            <div>
+              <h2 class="font-serif font-bold text-lg text-brand-950 uppercase">
+                Tambah Master Kategori
+              </h2>
+              <p class="text-xs text-brand-500 font-mono">
+                Kategori baru untuk pakaian di katalog
+              </p>
+            </div>
+          </div>
+          <button
+            @click="isMasterCategoryModalOpen = false"
+            class="p-1.5 text-brand-400 hover:text-brand-900 rounded"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- Form Body -->
+        <form
+          id="masterCategoryFormEl"
+          @submit.prevent="handleSaveMasterCategory"
+          class="p-6 space-y-4 font-sans text-xs"
+        >
+          <div class="space-y-1">
+            <label class="block font-mono text-brand-700 uppercase">Nama Kategori *</label>
+            <input
+              v-model="masterCategoryForm.name"
+              @input="generateMasterCategorySlug"
+              type="text"
+              required
+              placeholder="Misal: Shorts & Boxers"
+              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-medium"
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label class="block font-mono text-brand-700 uppercase">Slug URL (Otomatis) *</label>
+            <input
+              v-model="masterCategoryForm.slug"
+              type="text"
+              required
+              placeholder="shorts-boxers"
+              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+            />
+            <p class="text-[10px] text-brand-500 font-mono">Digunakan sebagai parameter URL di katalog (misal: /catalog?category=shorts-boxers).</p>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block font-mono text-brand-700 uppercase">Deskripsi Kategori (Opsional)</label>
+            <textarea
+              v-model="masterCategoryForm.description"
+              rows="2"
+              placeholder="Penjelasan singkat kategori pakaian ini..."
+              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-sans"
+            ></textarea>
+          </div>
+        </form>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 border-t border-brand-200 bg-brand-50/80 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            @click="isMasterCategoryModalOpen = false"
+            class="px-5 py-2.5 font-mono text-xs text-brand-600 hover:text-brand-900 font-medium"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            form="masterCategoryFormEl"
+            :disabled="actionLoading"
+            class="px-6 py-2.5 font-mono text-xs uppercase bg-brand-900 text-white hover:bg-brand-800 font-bold rounded flex items-center gap-2 shadow"
+          >
+            <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />
+            <span>Buat Master Kategori</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
 
   </div>
 </template>

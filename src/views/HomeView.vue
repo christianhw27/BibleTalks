@@ -31,49 +31,65 @@ const activeLookbook = computed(() => {
   return catalogStore.lookbooks?.[0] || null
 })
 
-// Curated Categories Template
-const categoryList = [
-  {
-    id: 'jackets',
-    slug: 'hoodies-outerwear',
-    name: 'Jackets & Outerwear',
-    tag: '01 // OUTERWEAR',
-    description: 'Zip hoodies 380 GSM, coaches jacket, dan rajut katun tebal.',
-    image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80',
-    badge: 'HOT DROP',
-    itemCount: 'Outerwear',
-  },
-  {
-    id: 't-shirts',
-    slug: 't-shirts',
-    name: 'Heavyweight T-Shirts',
-    tag: '02 // SIGNATURE CUT',
-    description: 'Kaos katun 16s 235+ GSM kokoh berpotongan boxy drop-shoulder.',
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
-    badge: 'BESTSELLER',
-    itemCount: 'Kaos Boxy',
-  },
-  {
-    id: 'accessories',
-    slug: 'accessories',
-    name: 'Aksesoris & Lain-Lain',
-    tag: '03 // AKSESORIS & MORE',
-    description: 'Topi corduroy 6-panel, beanie, tote bag kanvas, enamel pin, dan pelengkap gaya.',
-    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=800&q=80',
-    badge: 'ESSENTIALS',
-    itemCount: 'Aksesoris',
-  },
-  {
-    id: 'tumbler',
-    slug: 'accessories',
-    name: 'Tumbler & Daily Goods',
-    tag: '04 // LIFESTYLE MERCH',
-    description: 'Vacuum insulated flask 500ml, tote bag katun 14oz, dan daily accessories.',
-    image: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=800&q=80',
-    badge: 'NEW MERCH',
-    itemCount: 'Tumbler & Merch',
-  },
-]
+// Dynamic Categories from Catalog Store Showcase (Editable via Admin)
+const categoryList = computed(() => {
+  if (catalogStore.homepageShowcaseCards && catalogStore.homepageShowcaseCards.length > 0) {
+    return catalogStore.homepageShowcaseCards.map((card) => ({
+      id: card.id,
+      slug: card.category_slug,
+      name: card.title || card.category_name,
+      tag: card.tag,
+      description: card.description,
+      image: card.image,
+      badge: card.badge,
+      itemCount: card.button_text || card.title,
+    }))
+  }
+
+  // Fallback defaults while loading
+  return [
+    {
+      id: 'jackets',
+      slug: 'hoodies-outerwear',
+      name: 'Jackets & Outerwear',
+      tag: '01 // OUTERWEAR',
+      description: 'Zip hoodies 380 GSM, coaches jacket, dan rajut katun tebal.',
+      image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80',
+      badge: 'HOT DROP',
+      itemCount: 'Outerwear',
+    },
+    {
+      id: 't-shirts',
+      slug: 't-shirts',
+      name: 'Heavyweight T-Shirts',
+      tag: '02 // SIGNATURE CUT',
+      description: 'Kaos katun 16s 235+ GSM kokoh berpotongan boxy drop-shoulder.',
+      image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+      badge: 'BESTSELLER',
+      itemCount: 'Kaos Boxy',
+    },
+    {
+      id: 'accessories',
+      slug: 'accessories',
+      name: 'Aksesoris & Lain-Lain',
+      tag: '03 // AKSESORIS & MORE',
+      description: 'Topi corduroy 6-panel, beanie, tote bag kanvas, enamel pin, dan pelengkap gaya.',
+      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=800&q=80',
+      badge: 'ESSENTIALS',
+      itemCount: 'Aksesoris',
+    },
+    {
+      id: 'pants',
+      slug: 'pants-cargos',
+      name: 'Pants & Cargos',
+      tag: '04 // BOTTOMS',
+      description: 'Utility parachute trousers, denim, dan relaxed cargo pants.',
+      image: 'https://images.unsplash.com/photo-1517445312882-bc9910d016b7?auto=format&fit=crop&w=800&q=80',
+      badge: 'STREET CUT',
+      itemCount: 'Celana & Cargo',
+    },
+  ]
+})
 
 function navigateToCategory(slug) {
   catalogStore.activeCategory = slug

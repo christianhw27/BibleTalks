@@ -1,20 +1,14 @@
 import { supabase } from '../lib/supabase'
+import { getMasterCategories, getResolvedShowcaseCards } from './categoryService'
 
 /**
- * Mengambil seluruh kategori pakaian yang tersedia
+ * Mengambil seluruh master kategori pakaian yang tersedia
  */
 export async function getCategories() {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .order('sort_order', { ascending: true })
-
-  if (error) {
-    console.error('Error fetching categories:', error)
-    throw error
-  }
-  return data || []
+  return await getMasterCategories()
 }
+
+export { getResolvedShowcaseCards }
 
 /**
  * Mengambil daftar produk untuk katalog (dengan filter kategori, tag, fitur, dan pencarian)

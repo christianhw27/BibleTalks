@@ -30,7 +30,7 @@ const currentLookbook = computed(() => {
       <img
         :src="currentLookbook.cover_image"
         :alt="currentLookbook.title"
-        class="absolute inset-0 w-full h-full object-cover object-top opacity-30 filter contrast-105"
+        class="absolute inset-0 w-full h-full object-cover object-center filter contrast-105"
       />
       <div class="absolute inset-0 bg-gradient-to-t from-[#fcfcfb] via-[#fcfcfb]/60 to-transparent"></div>
 

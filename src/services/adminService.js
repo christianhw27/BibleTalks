@@ -185,29 +185,19 @@ export async function deleteImage(imageUrl, bucket = 'products') {
 }
 
 // ==============================================================================
-// CATEGORIES MANAGEMENT
+// CATEGORIES & HOMEPAGE SHOWCASE MANAGEMENT
 // ==============================================================================
 
-export async function createCategory(data) {
-  const { data: newCat, error } = await supabase
-    .from('categories')
-    .insert([data])
-    .select()
-    .single()
-
-  if (error) throw error
-  return newCat
-}
-
-export async function deleteCategory(categoryId) {
-  const { error } = await supabase
-    .from('categories')
-    .delete()
-    .eq('id', categoryId)
-
-  if (error) throw error
-  return true
-}
+export {
+  getMasterCategories as adminGetCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getResolvedShowcaseCards,
+  updateHomepageShowcaseCard,
+  addHomepageShowcaseCard,
+  deleteHomepageShowcaseCard,
+} from './categoryService'
 
 // ==============================================================================
 // STORE SETTINGS UPDATE
