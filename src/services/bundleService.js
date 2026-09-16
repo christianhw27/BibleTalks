@@ -15,7 +15,7 @@ export const DEFAULT_BUNDLES = [
     items: [
       { name: 'Heavyweight Boxy Tee (Grace & Chaos / Holy Rebel)', detail: 'Bahan 100% Katun 16s 235 GSM (Pilihan Size S-XL)' },
       { name: 'Corduroy Unstructured 6-Panel Cap', detail: 'Material corduroy vintage tebal dengan bordir micro' },
-      { name: 'Bible Talks Scripture Sticker Pack', detail: 'Gratis 5 pcs stiker vinyl tahan air bertema scripture' },
+      { name: 'Bible Talk Scripture Sticker Pack', detail: 'Gratis 5 pcs stiker vinyl tahan air bertema scripture' },
     ],
     sort_order: 1,
     is_active: true,
@@ -48,7 +48,7 @@ export const DEFAULT_BUNDLES = [
     image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=800&q=80',
     items: [
       { name: 'Vintage Washed Acid Tee (Holy Rebel)', detail: 'Kaos vintage wash otentik teknik pudar 90-an' },
-      { name: 'Bible Talks Vacuum Tumbler 500ml', detail: 'Stainless SUS304 double-wall tahan panas/dingin 12 jam' },
+      { name: 'Bible Talk Vacuum Tumbler 500ml', detail: 'Stainless SUS304 double-wall tahan panas/dingin 12 jam' },
       { name: 'Heavyweight 14oz Canvas Tote Bag', detail: 'Gratis tote bag kanvas tebal untuk buku atau Alkitab' },
     ],
     sort_order: 3,

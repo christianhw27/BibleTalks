@@ -141,7 +141,7 @@ export async function getStoreSettings() {
   }
 
   return data || {
-    brand_name: 'BibleTalks',
+    brand_name: 'Bible Talk',
     tagline: 'Subculture & Contemporary Streetwear',
     whatsapp_number: '',
     announcement_bar: 'NEW ARRIVALS AVAILABLE',

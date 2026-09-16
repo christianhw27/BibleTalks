@@ -57,7 +57,7 @@ async function handleLogin() {
             v-model="email"
             type="email"
             required
-            placeholder="admin@bibletalks.com"
+            placeholder="admin@bibletalk.com"
             class="w-full px-3.5 py-2.5 bg-brand-50 border border-brand-300 rounded text-sm text-brand-950 placeholder-brand-400 focus:outline-none focus:border-brand-600"
           />
         </div>

@@ -861,7 +861,7 @@ async function handleLogout() {
       <div>
         <div class="flex items-center gap-2 font-mono text-xs text-brand-500 uppercase tracking-widest mb-1">
           <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>BIBLE TALKS // CMS MANAGEMENT</span>
+          <span>BIBLE TALK // CMS MANAGEMENT</span>
         </div>
         <h1 class="font-serif font-bold text-2xl sm:text-3xl text-brand-950 uppercase">
           Katalog Pakaian & Stok

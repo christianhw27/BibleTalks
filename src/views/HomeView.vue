@@ -120,7 +120,7 @@ function closeBundleModal() {
 function orderBundleWhatsApp(bundle) {
   const wa = catalogStore.storeSettings.whatsapp_number || '6281234567890'
   const text = encodeURIComponent(
-    `Halo Bible Talks, saya ingin memesan Paket Bundle: *${bundle.title}* seharga *${catalogStore.formatPrice(bundle.bundlePrice)}* (${bundle.savingsText}). Apakah paket bundle ini masih tersedia?`
+    `Halo Bible Talk, saya ingin memesan Paket Bundle: *${bundle.title}* seharga *${catalogStore.formatPrice(bundle.bundlePrice)}* (${bundle.savingsText}). Apakah paket bundle ini masih tersedia?`
   )
   window.open(`https://wa.me/${wa}?text=${text}`, '_blank')
 }
@@ -137,7 +137,7 @@ function orderBundleWhatsApp(bundle) {
         <img
           src="/hero-banner.jpg"
           @error="$event.target.src = 'https://i.pinimg.com/736x/15/e9/8a/15e98ae06cc4737280a5364d21d5d37d.jpg'"
-          alt="Bible Talks Light Banner"
+          alt="Bible Talk Light Banner"
           class="w-full h-full object-cover object-center filter contrast-[1.04] brightness-[1.01]"
         />
         <!-- Subtle bottom blend only at the bottom 25% to transition smoothly into the catalog section -->

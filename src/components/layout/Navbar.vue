@@ -33,7 +33,7 @@ function handleSearchSubmit() {
 
 function openWhatsApp() {
   const wa = catalogStore.storeSettings.whatsapp_number || '6281234567890'
-  const text = encodeURIComponent('Halo BibleTalks, saya ingin bertanya tentang katalog rilisan pakaian.')
+  const text = encodeURIComponent('Halo Bible Talk, saya ingin bertanya tentang katalog rilisan pakaian.')
   window.open(`https://wa.me/${wa}?text=${text}`, '_blank')
 }
 </script>
@@ -43,20 +43,14 @@ function openWhatsApp() {
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-18 sm:h-22">
         
-        <!-- Left: Brand Logo (Scripture & Luxury Faith Aesthetic) -->
+        <!-- Left: Brand Logo (Official Bible Talk Asset) -->
         <div class="flex items-center gap-10">
-          <router-link to="/" class="flex items-center gap-3 group">
-            <span class="text-scripture-gold font-serif text-xl sm:text-2xl group-hover:scale-110 transition-transform duration-300">
-              ✦
-            </span>
-            <div class="flex flex-col">
-              <span class="font-serif font-bold text-xl sm:text-2xl tracking-[0.2em] text-brand-900 group-hover:text-scripture-bronze transition-colors uppercase">
-                BIBLE TALKS
-              </span>
-              <span class="font-mono text-[9px] tracking-widest text-brand-500 uppercase -mt-0.5">
-                Clothed in Purpose & Grace
-              </span>
-            </div>
+          <router-link to="/" class="flex items-center gap-3 group py-1">
+            <img 
+              src="/Bible Talk _Text.png" 
+              alt="BIBLE TALK" 
+              class="h-8 sm:h-10 md:h-11 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
+            />
           </router-link>
 
           <!-- Desktop Navigation Links -->

@@ -1,5 +1,5 @@
 -- ==============================================================================
--- BIBLE TALKS - SEED DATA (SAMPLE DISTRO CATALOG)
+-- BIBLE TALK - SEED DATA (SAMPLE DISTRO CATALOG)
 -- Jalankan ini di Supabase SQL Editor SETELAH menjalankan schema.sql
 -- ==============================================================================
 
@@ -84,7 +84,7 @@ values
     'b5555555-5555-5555-5555-555555555555',
     'Corduroy Unstructured 6-Panel Cap',
     'corduroy-unstructured-6-panel-cap',
-    'Topi 6-panel corduroy tebal vintage dengan bordir logo BibleTalks micro di panel depan dan strap pengatur kulit sintetis di belakang.',
+    'Topi 6-panel corduroy tebal vintage dengan bordir logo Bible Talk micro di panel depan dan strap pengatur kulit sintetis di belakang.',
     '{"material": "Premium 8-Wale Cotton Corduroy", "strap": "Adjustable Strap with Metal Buckle", "crown": "Low-Profile Unstructured Fit", "care": "Spot clean with damp cloth", "origin": "Bandung, ID"}'::jsonb,
     135000,
     'c4444444-4444-4444-4444-444444444444',
@@ -151,12 +151,12 @@ insert into public.store_settings (id, brand_name, tagline, about, whatsapp_numb
 values
   (
     'general',
-    'BIBLE TALKS',
+    'BIBLE TALK',
     'Subculture & Contemporary Streetwear',
-    'Bible Talks adalah entitas clothing independen yang memadukan estetika brutalist streetwear, potongan modern boxy fitting, dan pesan naratif yang mendalam.',
+    'Bible Talk adalah entitas clothing independen yang memadukan estetika brutalist streetwear, potongan modern boxy fitting, dan pesan naratif yang mendalam.',
     '6281234567890',
-    'https://instagram.com/bibletalks.co',
-    'https://tiktok.com/@bibletalks',
+    'https://instagram.com/bibletalk.co',
+    'https://tiktok.com/@bibletalk',
     'Kabupaten Ngawi, Jawa Timur - Indonesia',
     'NEW ARRIVALS: DROP 01 NOW AVAILABLE • WORLDWIDE SHIPPING AVAILABLE'
   )

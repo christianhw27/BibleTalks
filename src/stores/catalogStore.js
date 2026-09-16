@@ -17,7 +17,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const lookbooks = ref([])
   const bundles = ref([])
   const storeSettings = ref({
-    brand_name: 'BIBLE TALKS',
+    brand_name: 'BIBLE TALK',
     tagline: 'Subculture & Contemporary Streetwear',
     whatsapp_number: '',
     announcement_bar: 'FREE SHIPPING SPECIAL DROP • WORLDWIDE DELIVERY AVAILABLE',

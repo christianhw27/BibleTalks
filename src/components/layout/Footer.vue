@@ -25,14 +25,15 @@ const currentYear = new Date().getFullYear()
         
         <!-- Brand Manifesto Column -->
         <div class="md:col-span-5 space-y-4">
-          <div class="flex items-center gap-2.5">
-            <span class="text-scripture-gold font-serif text-xl">✦</span>
-            <span class="font-serif font-bold text-2xl text-brand-900 tracking-wider">
-              {{ catalogStore.storeSettings.brand_name || 'BIBLE TALKS' }}
-            </span>
+          <div class="flex items-center gap-3">
+            <img 
+              src="/Bible Talk _Text.png" 
+              alt="BIBLE TALK" 
+              class="h-9 sm:h-10 w-auto object-contain"
+            />
           </div>
           <p class="text-sm text-brand-600 leading-relaxed max-w-md font-normal">
-            {{ catalogStore.storeSettings.about || 'Bible Talks adalah entitas pakaian bernuansa scripture yang menyatukan pesan firman, potongan modern boxy fitting, dan material katun 16s berkualitas tinggi untuk memuliakan nama-Nya.' }}
+            {{ catalogStore.storeSettings.about || 'Bible Talk adalah entitas pakaian bernuansa scripture yang menyatukan pesan firman, potongan modern boxy fitting, dan material katun 16s berkualitas tinggi untuk memuliakan nama-Nya.' }}
           </p>
           <div class="pt-2 font-mono text-xs text-brand-500">
             CRAFTED WITH INTENT: <span class="text-brand-800 font-medium">{{ catalogStore.storeSettings.address || 'KABUPATEN NGAWI, JAWA TIMUR - INDONESIA' }}</span>
@@ -104,7 +105,7 @@ const currentYear = new Date().getFullYear()
             >
               <span class="flex items-center gap-2">
                 <Instagram class="w-4 h-4 text-pink-600" />
-                Instagram @bibletalks
+                Instagram @bibletalk.co
               </span>
               <ArrowUpRight class="w-3.5 h-3.5 text-brand-400" />
             </a>
@@ -116,7 +117,7 @@ const currentYear = new Date().getFullYear()
       <!-- Bottom Footnote & Copyright -->
       <div class="mt-16 pt-8 border-t border-brand-300 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-brand-500">
         <div>
-          &copy; {{ currentYear }} BIBLE TALKS APPAREL CO. CLOTHED IN PURPOSE & TRUTH.
+          &copy; {{ currentYear }} BIBLE TALK APPAREL CO. CLOTHED IN PURPOSE & TRUTH.
         </div>
         <div class="flex items-center gap-4">
           <span>WALK IN THE LIGHT</span>

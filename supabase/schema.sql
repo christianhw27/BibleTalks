@@ -1,5 +1,5 @@
 -- ==============================================================================
--- BIBLE TALKS - DISTRO & CLOTHING CATALOG DATABASE SCHEMA
+-- BIBLE TALK - DISTRO & CLOTHING CATALOG DATABASE SCHEMA
 -- Compatible with Supabase PostgreSQL
 -- ==============================================================================
 
@@ -64,7 +64,7 @@ create table if not exists public.lookbooks (
 -- 7. STORE SETTINGS & BRAND PROFILE
 create table if not exists public.store_settings (
   id text primary key default 'general',
-  brand_name text not null default 'BibleTalks',
+  brand_name text not null default 'Bible Talk',
   tagline text default 'Subculture & Contemporary Streetwear',
   about text,
   whatsapp_number text, -- e.g. '6281234567890' (without +)

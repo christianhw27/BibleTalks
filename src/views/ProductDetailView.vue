@@ -83,7 +83,7 @@ function orderViaWhatsApp() {
   const priceText = catalogStore.formatPrice(product.value.price)
 
   const message = [
-    `Shalom / Halo *${catalogStore.storeSettings.brand_name || 'BibleTalks'}*, saya ingin memesan artikel pakaian ini:`,
+    `Shalom / Halo *${catalogStore.storeSettings.brand_name || 'Bible Talk'}*, saya ingin memesan artikel pakaian ini:`,
     '',
     `• Produk: *${product.value.title}*`,
     sizeText ? `• ${sizeText}` : '',
@@ -302,7 +302,7 @@ const relatedProducts = computed(() => {
           </button>
           
           <p class="text-center font-mono text-[11px] text-brand-500">
-            Transaksi langsung via admin WhatsApp resmi • Garansi original BIBLE TALKS
+            Transaksi langsung via admin WhatsApp resmi • Garansi original BIBLE TALK
           </p>
         </div>
 

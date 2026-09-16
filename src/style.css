@@ -4,16 +4,16 @@
 
 @layer base {
   body {
-    background-color: #fcfcfb;
-    color: #1a1715;
+    background-color: #fafaf7;
+    color: #153227;
     font-family: 'Inter', system-ui, sans-serif;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
 
   ::selection {
-    background-color: #e8dec8;
-    color: #1a1715;
+    background-color: #f5b025;
+    color: #153227;
   }
 
   /* Elegant minimal scrollbar for bright theme */

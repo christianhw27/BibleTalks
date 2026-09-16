@@ -1,5 +1,5 @@
 -- ==============================================================================
--- BIBLE TALKS - HOMEPAGE SHOWCASE CARDS MIGRATION
+-- BIBLE TALK - HOMEPAGE SHOWCASE CARDS MIGRATION
 -- ==============================================================================
 
 CREATE TABLE IF NOT EXISTS public.homepage_showcase (

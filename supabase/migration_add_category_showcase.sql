@@ -1,5 +1,5 @@
 -- ==============================================================================
--- BIBLE TALKS - MIGRATION: ADD SHOWCASE COLUMNS TO CATEGORIES
+-- BIBLE TALK - MIGRATION: ADD SHOWCASE COLUMNS TO CATEGORIES
 -- Jalankan query ini di Dashboard Supabase -> SQL Editor -> New Query -> Run
 -- ==============================================================================
 
