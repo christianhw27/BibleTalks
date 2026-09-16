@@ -55,11 +55,6 @@ const currentYear = new Date().getFullYear()
             <li>
               <router-link to="/lookbook" class="hover:text-brand-900 transition-colors">Editorial Lookbook</router-link>
             </li>
-            <li>
-              <router-link to="/admin" class="hover:text-brand-900 transition-colors text-brand-400 hover:text-brand-700 text-xs font-mono">
-                Staff Portal
-              </router-link>
-            </li>
           </ul>
         </div>
 

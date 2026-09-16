@@ -100,24 +100,6 @@ function openWhatsApp() {
             <span>Chat Admin</span>
           </button>
 
-          <!-- Admin Portal -->
-          <router-link
-            v-if="authStore.isAuthenticated"
-            to="/admin"
-            class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono text-white bg-brand-900 hover:bg-brand-800 rounded transition-colors font-medium"
-          >
-            <LayoutDashboard class="w-3.5 h-3.5" />
-            <span>CMS Admin</span>
-          </router-link>
-          <router-link
-            v-else
-            to="/admin/login"
-            class="p-2 text-brand-400 hover:text-brand-700 transition-colors"
-            title="Staff Portal"
-          >
-            <Lock class="w-4 h-4" />
-          </router-link>
-
           <!-- Mobile Hamburger -->
           <button
             @click="isMobileMenuOpen = !isMobileMenuOpen"
@@ -192,15 +174,6 @@ function openWhatsApp() {
             <MessageCircle class="w-4 h-4 text-emerald-600" />
             <span>Chat WhatsApp CS</span>
           </button>
-          <router-link
-            v-if="authStore.isAuthenticated"
-            to="/admin"
-            @click="isMobileMenuOpen = false"
-            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs text-white bg-brand-900 font-bold rounded"
-          >
-            <LayoutDashboard class="w-4 h-4" />
-            <span>Dashboard Admin CMS</span>
-          </router-link>
         </div>
       </div>
 
