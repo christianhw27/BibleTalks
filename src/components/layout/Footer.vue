@@ -105,7 +105,7 @@ const currentYear = new Date().getFullYear()
             >
               <span class="flex items-center gap-2">
                 <Instagram class="w-4 h-4 text-pink-600" />
-                Instagram @bibletalk.co
+                Instagram @bibletalk.merch
               </span>
               <ArrowUpRight class="w-3.5 h-3.5 text-brand-400" />
             </a>
