@@ -134,12 +134,15 @@ function orderBundleWhatsApp(bundle) {
       
       <!-- Ambient Sunlit Background Banner -->
       <div class="absolute inset-0 z-0">
-        <img
-          src="/hero-banner.jpg"
-          @error="$event.target.src = 'https://i.pinimg.com/736x/15/e9/8a/15e98ae06cc4737280a5364d21d5d37d.jpg'"
-          alt="Bible Talk Light Banner"
-          class="w-full h-full object-cover object-center filter contrast-[1.04] brightness-[1.01]"
-        />
+        <picture class="w-full h-full block">
+          <source media="(max-width: 639px)" srcset="/Mobile_BG.png" />
+          <img
+            src="/hero-banner.jpg"
+            @error="$event.target.src = 'https://i.pinimg.com/736x/15/e9/8a/15e98ae06cc4737280a5364d21d5d37d.jpg'"
+            alt="Bible Talk Light Banner"
+            class="w-full h-full object-cover object-center filter contrast-[1.04] brightness-[1.01]"
+          />
+        </picture>
         <!-- Subtle bottom blend only at the bottom 25% to transition smoothly into the catalog section -->
         <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent 75% to-[#fcfcfb]"></div>
       </div>

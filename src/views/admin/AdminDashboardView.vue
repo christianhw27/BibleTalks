@@ -159,6 +159,7 @@ const settingsForm = ref({
   brand_name: '',
   tagline: '',
   whatsapp_number: '',
+  instagram_url: '',
   announcement_bar: '',
   about: '',
   address: '',
@@ -202,6 +203,7 @@ async function loadAdminData() {
       brand_name: catalogStore.storeSettings.brand_name || '',
       tagline: catalogStore.storeSettings.tagline || '',
       whatsapp_number: catalogStore.storeSettings.whatsapp_number || '',
+      instagram_url: catalogStore.storeSettings.instagram_url || '',
       announcement_bar: catalogStore.storeSettings.announcement_bar || '',
       about: catalogStore.storeSettings.about || '',
       address: catalogStore.storeSettings.address || 'Kabupaten Ngawi, Jawa Timur - Indonesia',
@@ -1132,6 +1134,19 @@ async function handleLogout() {
           />
           <p class="text-[11px] text-brand-500 font-mono">
             Format kode negara, misal: 6281234567890. Tombol pemesanan di detail produk akan langsung mengarah ke nomor ini.
+          </p>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block font-mono text-brand-700 uppercase">Link Instagram Resmi (URL / Handle)</label>
+          <input
+            v-model="settingsForm.instagram_url"
+            type="text"
+            placeholder="https://instagram.com/bibletalk.co"
+            class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+          />
+          <p class="text-[11px] text-brand-500 font-mono">
+            Format URL lengkap, misal: https://instagram.com/bibletalk.co. Tombol Instagram di footer akan mengarah ke link ini.
           </p>
         </div>
 

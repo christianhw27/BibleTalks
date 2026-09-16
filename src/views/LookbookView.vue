@@ -48,19 +48,19 @@ const parsedGallery = computed(() => {
     .filter((p) => p && p.url)
 })
 
-// Pola tata letak editorial asimetris dinamis untuk jumlah foto berapa pun
+// Pola tata letak editorial puzzle asimetris dinamis (Mobile & Desktop)
 function getGridClasses(idx, total) {
   if (total === 1) {
-    return 'md:col-span-12 h-[500px] sm:h-[620px]'
+    return 'col-span-2 md:col-span-12 h-[340px] sm:h-[500px] md:h-[620px]'
   }
   if (total === 2) {
-    return 'md:col-span-6 h-[460px] sm:h-[560px]'
+    return 'col-span-1 md:col-span-6 h-[260px] sm:h-[460px] md:h-[560px]'
   }
   const pattern = idx % 4
-  if (pattern === 0) return 'md:col-span-8 h-[480px] sm:h-[560px]'
-  if (pattern === 1) return 'md:col-span-4 h-[480px] sm:h-[560px]'
-  if (pattern === 2) return 'md:col-span-5 h-[440px] sm:h-[500px]'
-  return 'md:col-span-7 h-[440px] sm:h-[500px]'
+  if (pattern === 0) return 'col-span-2 md:col-span-8 h-[320px] sm:h-[480px] md:h-[560px]'
+  if (pattern === 1) return 'col-span-1 md:col-span-4 h-[220px] sm:h-[480px] md:h-[560px]'
+  if (pattern === 2) return 'col-span-1 md:col-span-5 h-[220px] sm:h-[440px] md:h-[500px]'
+  return 'col-span-2 md:col-span-7 h-[280px] sm:h-[440px] md:h-[500px]'
 }
 </script>
 
@@ -107,8 +107,8 @@ function getGridClasses(idx, total) {
         </span>
       </div>
 
-      <!-- Asymmetric Editorial Grid: Menampilkan SEMUA foto yang diunggah -->
-      <div v-if="parsedGallery.length > 0" class="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-start">
+      <!-- Asymmetric Puzzle Grid: 2 Kolom di Mobile, 12 Kolom di Desktop -->
+      <div v-if="parsedGallery.length > 0" class="grid grid-cols-2 md:grid-cols-12 gap-3 sm:gap-6 md:gap-8 items-start">
         <div
           v-for="(photo, idx) in parsedGallery"
           :key="idx"
