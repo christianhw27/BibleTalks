@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getWIBTimeParts, getActiveWhatsAppCP, DEFAULT_SHIFTS } from '../../lib/whatsappResolver'
 import { useAuthStore } from '../../stores/authStore'
 import { useCatalogStore } from '../../stores/catalogStore'
 import {
@@ -49,6 +50,10 @@ import {
   Gift,
   Boxes,
   Eye,
+  Clock,
+  MessageCircle,
+  Phone,
+  Radio,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -159,11 +164,60 @@ const settingsForm = ref({
   brand_name: '',
   tagline: '',
   whatsapp_number: '',
+  whatsapp_shifts_enabled: true,
+  whatsapp_shifts: [],
   instagram_url: '',
   announcement_bar: '',
   about: '',
   address: '',
 })
+
+// Real-time WIB Clock for shift monitoring in Admin
+const currentWIB = ref(getWIBTimeParts())
+let wibClockTimer = null
+
+onMounted(() => {
+  wibClockTimer = setInterval(() => {
+    currentWIB.value = getWIBTimeParts()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  if (wibClockTimer) clearInterval(wibClockTimer)
+})
+
+// Active CP live resolver in Admin dashboard preview
+const currentActiveCPInAdmin = computed(() => {
+  return getActiveWhatsAppCP({
+    brand_name: settingsForm.value.brand_name,
+    whatsapp_number: settingsForm.value.whatsapp_number,
+    whatsapp_shifts_enabled: settingsForm.value.whatsapp_shifts_enabled,
+    whatsapp_shifts: settingsForm.value.whatsapp_shifts,
+  })
+})
+
+function addShift() {
+  const nextNum = (settingsForm.value.whatsapp_shifts?.length || 0) + 1
+  if (!Array.isArray(settingsForm.value.whatsapp_shifts)) {
+    settingsForm.value.whatsapp_shifts = []
+  }
+  settingsForm.value.whatsapp_shifts.push({
+    id: 'shift-' + Date.now(),
+    name: `CP ${nextNum}`,
+    start_time: '08:00',
+    end_time: '17:00',
+    whatsapp_number: settingsForm.value.whatsapp_number || '6281234567890',
+    is_active: true,
+  })
+}
+
+function removeShift(index) {
+  if (!settingsForm.value.whatsapp_shifts || settingsForm.value.whatsapp_shifts.length <= 1) {
+    notify('Minimal harus ada 1 shift jika sistem rolling aktif.', 'error')
+    return
+  }
+  settingsForm.value.whatsapp_shifts.splice(index, 1)
+}
 
 // Lookbook Form
 const lookbookForm = ref({
@@ -203,6 +257,10 @@ async function loadAdminData() {
       brand_name: catalogStore.storeSettings.brand_name || '',
       tagline: catalogStore.storeSettings.tagline || '',
       whatsapp_number: catalogStore.storeSettings.whatsapp_number || '',
+      whatsapp_shifts_enabled: catalogStore.storeSettings.whatsapp_shifts_enabled !== false,
+      whatsapp_shifts: Array.isArray(catalogStore.storeSettings.whatsapp_shifts) && catalogStore.storeSettings.whatsapp_shifts.length > 0
+        ? JSON.parse(JSON.stringify(catalogStore.storeSettings.whatsapp_shifts))
+        : JSON.parse(JSON.stringify(DEFAULT_SHIFTS)),
       instagram_url: catalogStore.storeSettings.instagram_url || '',
       announcement_bar: catalogStore.storeSettings.announcement_bar || '',
       about: catalogStore.storeSettings.about || '',
@@ -602,9 +660,15 @@ async function handleDeleteProduct(prod) {
 async function handleSaveSettings() {
   actionLoading.value = true
   try {
-    await updateStoreSettings(settingsForm.value)
+    const res = await updateStoreSettings(settingsForm.value)
     catalogStore.storeSettings = { ...catalogStore.storeSettings, ...settingsForm.value }
-    notify('Pengaturan toko berhasil diperbarui!')
+    await catalogStore.refreshStoreSettings()
+    
+    if (res?.migrationNeeded) {
+      notify('Pengaturan tersimpan di browser! Jalankan file SQL supabase/migration_add_whatsapp_shifts.sql di Supabase agar tersimpan ke database server.', 'warning')
+    } else {
+      notify('Pengaturan toko & shift CP WhatsApp berhasil diperbarui!')
+    }
   } catch (err) {
     notify('Gagal memperbarui pengaturan: ' + err.message, 'error')
   } finally {
@@ -1098,7 +1162,7 @@ async function handleLogout() {
     </div>
 
     <!-- TAB 2: STORE SETTINGS & WHATSAPP -->
-    <div v-else-if="activeTab === 'settings'" class="max-w-2xl bg-white border border-brand-300 rounded shadow-sm p-6 space-y-6">
+    <div v-else-if="activeTab === 'settings'" class="max-w-4xl bg-white border border-brand-300 rounded shadow-sm p-6 sm:p-8 space-y-6">
       <h2 class="font-serif font-bold text-lg text-brand-950 uppercase">
         Profil Brand & Kontak Pemesanan
       </h2>
@@ -1123,18 +1187,215 @@ async function handleLogout() {
           />
         </div>
 
-        <div class="space-y-1">
-          <label class="block font-mono text-brand-700 uppercase">Nomor WhatsApp CS (Tanpa simbol +)</label>
-          <input
-            v-model="settingsForm.whatsapp_number"
-            type="text"
-            placeholder="6281234567890"
-            required
-            class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
-          />
-          <p class="text-[11px] text-brand-500 font-mono">
-            Format kode negara, misal: 6281234567890. Tombol pemesanan di detail produk akan langsung mengarah ke nomor ini.
-          </p>
+        <!-- SISTEM ROLLING CONTACT PERSON (CP) WHATSAPP - WIB BASED -->
+        <div class="border border-brand-300 rounded-xl bg-white p-5 sm:p-6 space-y-6 shadow-sm">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-brand-200">
+            <div>
+              <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-brand-100 border border-brand-300 text-brand-800 font-mono text-[11px] uppercase tracking-wider mb-1">
+                <Clock class="w-3.5 h-3.5 text-brand-700" />
+                <span>Rolling Shift CS • Standar Waktu WIB (UTC+7)</span>
+              </div>
+              <h3 class="font-serif font-bold text-lg text-brand-950 uppercase tracking-tight">
+                Pengaturan Shift Contact Person (CP) WhatsApp
+              </h3>
+              <p class="text-xs text-brand-600 font-sans mt-0.5">
+                Nomor WhatsApp pemesanan akan otomatis berganti ke nomor CP yang bertugas sesuai jadwal jam WIB.
+              </p>
+            </div>
+
+            <!-- Toggle Shift Master -->
+            <label class="flex items-center gap-2.5 cursor-pointer bg-brand-50 border border-brand-300 px-3 py-2 rounded-lg hover:border-brand-400 select-none">
+              <input
+                type="checkbox"
+                v-model="settingsForm.whatsapp_shifts_enabled"
+                class="w-4 h-4 accent-emerald-600 rounded"
+              />
+              <span class="font-mono text-xs font-semibold" :class="settingsForm.whatsapp_shifts_enabled ? 'text-emerald-700' : 'text-brand-500'">
+                {{ settingsForm.whatsapp_shifts_enabled ? 'Sistem Shift Aktif' : 'Shift Dinonaktifkan' }}
+              </span>
+            </label>
+          </div>
+
+          <!-- Live WIB Status Preview Banner -->
+          <div class="p-4 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs shadow-xs"
+            :class="settingsForm.whatsapp_shifts_enabled ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900' : 'bg-amber-50/70 border-amber-200 text-amber-900'"
+          >
+            <div class="flex items-center gap-3">
+              <div class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                  :class="settingsForm.whatsapp_shifts_enabled ? 'bg-emerald-400' : 'bg-amber-400'"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3"
+                  :class="settingsForm.whatsapp_shifts_enabled ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+              </div>
+              <div>
+                <div class="font-bold flex items-center gap-2">
+                  <span>WAKTU SAAT INI:</span>
+                  <span class="bg-white px-2 py-0.5 rounded border text-brand-950 font-mono tracking-wider font-bold">
+                    {{ currentWIB.formattedTime }}:{{ String(currentWIB.second).padStart(2, '0') }} WIB
+                  </span>
+                </div>
+                <div class="text-[11px] mt-1 text-brand-700">
+                  <span class="text-brand-500">Sedang Melayani:</span>
+                  <strong class="text-brand-950 ml-1.5">{{ currentActiveCPInAdmin.displayText }}</strong>
+                  <span class="ml-2 text-brand-600 font-mono">({{ currentActiveCPInAdmin.whatsapp_number }})</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="self-start sm:self-auto">
+              <span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border"
+                :class="settingsForm.whatsapp_shifts_enabled ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-amber-100 border-amber-300 text-amber-800'"
+              >
+                {{ settingsForm.whatsapp_shifts_enabled ? 'Live WIB Routing' : 'Menggunakan No. Fallback' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Shifts List -->
+          <div v-if="settingsForm.whatsapp_shifts_enabled" class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h4 class="font-mono text-xs uppercase tracking-widest text-brand-900 font-bold flex items-center gap-2">
+                <span>Daftar Shift Kerja CP</span>
+                <span class="text-[11px] font-normal text-brand-500">({{ settingsForm.whatsapp_shifts?.length || 0 }} shift terdaftar)</span>
+              </h4>
+
+              <button
+                type="button"
+                @click="addShift"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider bg-brand-900 hover:bg-brand-800 text-white rounded shadow-sm transition-colors"
+              >
+                <Plus class="w-3.5 h-3.5" />
+                <span>Tambah Shift</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4">
+              <div
+                v-for="(shift, idx) in settingsForm.whatsapp_shifts"
+                :key="shift.id || idx"
+                class="p-5 rounded-xl border transition-all bg-[#fbfbfa]"
+                :class="[
+                  shift.is_active !== false
+                    ? 'border-brand-300 hover:border-brand-500 shadow-xs'
+                    : 'border-brand-200 bg-brand-100/40 opacity-75'
+                ]"
+              >
+                <!-- Card Top Row: Badge, Name Input, Status & Delete Button -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-brand-200">
+                  <div class="flex items-center gap-3 flex-grow max-w-md">
+                    <span class="w-8 h-8 rounded-full bg-brand-900 text-white font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 shadow-xs">
+                      {{ idx + 1 }}
+                    </span>
+                    <div class="flex-grow">
+                      <label class="block text-[10px] font-mono uppercase tracking-wider text-brand-500 font-bold mb-1">
+                        Nama / Label Shift CP
+                      </label>
+                      <input
+                        v-model="shift.name"
+                        type="text"
+                        placeholder="Contoh: CP 1 (Shift Pagi)"
+                        class="w-full px-3 py-1.5 bg-white border border-brand-300 rounded font-semibold text-sm text-brand-950 focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Toggle Aktif & Tombol Hapus -->
+                  <div class="flex items-center gap-3 self-end sm:self-center">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-mono select-none px-3 py-1.5 bg-white border border-brand-300 rounded-lg hover:border-brand-500 transition-colors shadow-2xs">
+                      <input
+                        type="checkbox"
+                        v-model="shift.is_active"
+                        class="w-4 h-4 accent-emerald-600 rounded"
+                      />
+                      <span :class="shift.is_active !== false ? 'text-emerald-700 font-bold' : 'text-brand-400 font-medium'">
+                        {{ shift.is_active !== false ? 'Aktif' : 'Non-aktif' }}
+                      </span>
+                    </label>
+
+                    <button
+                      type="button"
+                      @click="removeShift(idx)"
+                      class="p-2 text-brand-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                      title="Hapus shift ini"
+                    >
+                      <Trash2 class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Card Bottom Row: Jam Mulai, Jam Selesai, No. WhatsApp Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3.5 font-mono text-xs">
+                  <!-- Jam Mulai -->
+                  <div class="space-y-1">
+                    <label class="block text-[11px] uppercase tracking-wider text-brand-700 font-bold">
+                      Jam Mulai (WIB) <span class="text-rose-500">*</span>
+                    </label>
+                    <input
+                      v-model="shift.start_time"
+                      type="time"
+                      required
+                      class="w-full px-3 py-2 bg-white border border-brand-300 rounded-lg text-sm text-brand-950 font-mono font-medium focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 shadow-2xs"
+                    />
+                  </div>
+
+                  <!-- Jam Selesai -->
+                  <div class="space-y-1">
+                    <label class="block text-[11px] uppercase tracking-wider text-brand-700 font-bold">
+                      Jam Selesai (WIB) <span class="text-rose-500">*</span>
+                    </label>
+                    <input
+                      v-model="shift.end_time"
+                      type="time"
+                      required
+                      class="w-full px-3 py-2 bg-white border border-brand-300 rounded-lg text-sm text-brand-950 font-mono font-medium focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 shadow-2xs"
+                    />
+                  </div>
+
+                  <!-- WhatsApp Number -->
+                  <div class="space-y-1">
+                    <label class="block text-[11px] uppercase tracking-wider text-brand-700 font-bold">
+                      No. WhatsApp CP <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                      <Phone class="w-4 h-4 text-brand-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        v-model="shift.whatsapp_number"
+                        type="text"
+                        placeholder="6281234567890"
+                        required
+                        class="w-full pl-9 pr-3 py-2 bg-white border border-brand-300 rounded-lg text-sm text-brand-950 font-mono focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 shadow-2xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Fallback / Master WhatsApp Number -->
+          <div class="p-4 rounded-lg bg-brand-50 border border-brand-200 space-y-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label class="block font-mono text-xs text-brand-800 font-semibold uppercase">
+                Nomor WhatsApp Fallback / Cadangan Toko (Tanpa simbol +)
+              </label>
+              <span class="text-[10px] font-mono text-brand-500">
+                Dipakai jika sistem shift dimatikan atau di luar rentang jam shift
+              </span>
+            </div>
+            <div class="relative max-w-md">
+              <Phone class="w-4 h-4 text-brand-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                v-model="settingsForm.whatsapp_number"
+                type="text"
+                placeholder="6281234567890"
+                required
+                class="w-full pl-9 pr-3 py-2 bg-white border border-brand-300 rounded text-brand-950 font-mono text-sm"
+              />
+            </div>
+          </div>
+
         </div>
 
         <div class="space-y-1">

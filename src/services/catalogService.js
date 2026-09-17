@@ -140,12 +140,30 @@ export async function getStoreSettings() {
     console.error('Error fetching store settings:', error)
   }
 
-  return data || {
+  const result = data || {
     brand_name: 'Bible Talk',
     tagline: 'Subculture & Contemporary Streetwear',
     whatsapp_number: '',
     announcement_bar: 'NEW ARRIVALS AVAILABLE',
   }
+
+  // Check local storage fallback for shifts if not yet in database
+  try {
+    const localRaw = localStorage.getItem('bibletalk_store_settings_local')
+    if (localRaw) {
+      const parsed = JSON.parse(localRaw)
+      if (!result.whatsapp_shifts && parsed.whatsapp_shifts) {
+        result.whatsapp_shifts = parsed.whatsapp_shifts
+      }
+      if (result.whatsapp_shifts_enabled === undefined && parsed.whatsapp_shifts_enabled !== undefined) {
+        result.whatsapp_shifts_enabled = parsed.whatsapp_shifts_enabled
+      }
+    }
+  } catch (e) {
+    // Ignore local storage error
+  }
+
+  return result
 }
 
 export { getBundles, DEFAULT_BUNDLES } from './bundleService'

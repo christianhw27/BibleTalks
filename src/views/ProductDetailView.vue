@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getProductBySlug } from '../services/catalogService'
 import { useCatalogStore } from '../stores/catalogStore'
 import ProductCard from '../components/catalog/ProductCard.vue'
+import OrderModal from '../components/order/OrderModal.vue'
 import {
   MessageCircle,
   Ruler,
@@ -27,6 +28,7 @@ const error = ref(null)
 const activeImageIndex = ref(0)
 const selectedSize = ref(null)
 const isSizeChartOpen = ref(false)
+const isOrderModalOpen = ref(false)
 const copiedLink = ref(false)
 
 async function loadProduct() {
@@ -75,25 +77,10 @@ const isCurrentSizeSoldOut = computed(() => {
   return currentVariant.value.stock <= 0
 })
 
-// WhatsApp Direct Order generator
-function orderViaWhatsApp() {
+// Open Order Modal with customer form
+function openOrderModal() {
   if (!product.value) return
-  const wa = catalogStore.storeSettings.whatsapp_number || '6281234567890'
-  const sizeText = selectedSize.value ? `Ukuran: *${selectedSize.value}*` : ''
-  const priceText = catalogStore.formatPrice(product.value.price)
-
-  const message = [
-    `Shalom / Halo *${catalogStore.storeSettings.brand_name || 'Bible Talk'}*, saya ingin memesan artikel pakaian ini:`,
-    '',
-    `• Produk: *${product.value.title}*`,
-    sizeText ? `• ${sizeText}` : '',
-    `• Harga: *${priceText}*`,
-    `• Link: ${window.location.href}`,
-    '',
-    `Apakah stok ukuran ini masih tersedia untuk saya proses? Terima kasih dan Tuhan memberkati!`,
-  ].filter(Boolean).join('\n')
-
-  window.open(`https://wa.me/${wa}?text=${encodeURIComponent(message)}`, '_blank')
+  isOrderModalOpen.value = true
 }
 
 // Copy link
@@ -288,7 +275,7 @@ const relatedProducts = computed(() => {
         <!-- CTA ORDER BUTTON VIA WHATSAPP -->
         <div class="space-y-3 pt-2">
           <button
-            @click="orderViaWhatsApp"
+            @click="openOrderModal"
             :disabled="isCurrentSizeSoldOut"
             class="w-full py-4 px-6 rounded font-mono text-xs uppercase tracking-widest font-bold transition-all duration-200 flex items-center justify-center gap-3 shadow-md"
             :class="[
@@ -298,7 +285,7 @@ const relatedProducts = computed(() => {
             ]"
           >
             <MessageCircle class="w-4 h-4 text-emerald-400" />
-            <span>{{ isCurrentSizeSoldOut ? 'UKURAN INI HABIS' : 'PESAN / TANYA STOK VIA WHATSAPP' }}</span>
+            <span>{{ isCurrentSizeSoldOut ? 'UKURAN INI HABIS' : 'PESAN / ORDER VIA WHATSAPP' }}</span>
           </button>
           
           <p class="text-center font-mono text-[11px] text-brand-500">
@@ -439,6 +426,14 @@ const relatedProducts = computed(() => {
         />
       </div>
     </div>
+
+    <!-- ORDER FORM MODAL -->
+    <OrderModal
+      :isOpen="isOrderModalOpen"
+      :product="product"
+      :initialSize="selectedSize"
+      @close="isOrderModalOpen = false"
+    />
 
   </div>
 </template>

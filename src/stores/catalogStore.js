@@ -8,6 +8,7 @@ import {
   getResolvedShowcaseCards,
   getBundles,
 } from '../services/catalogService'
+import { getActiveWhatsAppCP, DEFAULT_SHIFTS, getWIBTimeParts } from '../lib/whatsappResolver'
 
 export const useCatalogStore = defineStore('catalog', () => {
   const categories = ref([])
@@ -20,8 +21,15 @@ export const useCatalogStore = defineStore('catalog', () => {
     brand_name: 'BIBLE TALK',
     tagline: 'Subculture & Contemporary Streetwear',
     whatsapp_number: '',
+    whatsapp_shifts_enabled: true,
+    whatsapp_shifts: DEFAULT_SHIFTS,
     announcement_bar: 'FREE SHIPPING SPECIAL DROP • WORLDWIDE DELIVERY AVAILABLE',
     address: 'Kabupaten Ngawi, Jawa Timur - Indonesia',
+  })
+
+  // Dynamic active WhatsApp Contact Person resolved by WIB (UTC+7)
+  const activeWhatsAppCP = computed(() => {
+    return getActiveWhatsAppCP(storeSettings.value)
   })
 
   const loading = ref(false)
@@ -133,6 +141,17 @@ export const useCatalogStore = defineStore('catalog', () => {
       console.error('Error refreshing bundles:', err)
     }
   }
+  // Refresh store settings (e.g. after admin update)
+  async function refreshStoreSettings() {
+    try {
+      const s = await getStoreSettings()
+      if (s) {
+        storeSettings.value = { ...storeSettings.value, ...s }
+      }
+    } catch (e) {
+      console.error('Error refreshing store settings:', e)
+    }
+  }
 
   return {
     categories,
@@ -142,6 +161,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     lookbooks,
     bundles,
     storeSettings,
+    activeWhatsAppCP,
     loading,
     isLoaded,
     error,
@@ -155,6 +175,9 @@ export const useCatalogStore = defineStore('catalog', () => {
     refreshProducts,
     refreshCategories,
     refreshBundles,
+    refreshStoreSettings,
+    getWIBTimeParts,
+    DEFAULT_SHIFTS,
   }
 })
 

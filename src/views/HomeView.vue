@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCatalogStore } from '../stores/catalogStore'
 import ProductCard from '../components/catalog/ProductCard.vue'
+import OrderModal from '../components/order/OrderModal.vue'
 import {
   ArrowRight,
   Camera,
@@ -118,11 +119,28 @@ function closeBundleModal() {
 }
 
 function orderBundleWhatsApp(bundle) {
-  const wa = catalogStore.storeSettings.whatsapp_number || '6281234567890'
-  const text = encodeURIComponent(
-    `Halo Bible Talk, saya ingin memesan Paket Bundle: *${bundle.title}* seharga *${catalogStore.formatPrice(bundle.bundlePrice)}* (${bundle.savingsText}). Apakah paket bundle ini masih tersedia?`
-  )
-  window.open(`https://wa.me/${wa}?text=${text}`, '_blank')
+  openBundleOrderModal(bundle)
+}
+
+const bundleOrderModalProduct = ref(null)
+const isBundleOrderModalOpen = ref(false)
+
+function openBundleOrderModal(bundle) {
+  if (!bundle) return
+  bundleOrderModalProduct.value = {
+    title: `[Bundle] ${bundle.title}`,
+    price: bundle.bundlePrice,
+    images: bundle.image ? [bundle.image] : [],
+    category: { name: 'Exclusive Bundling' },
+    variants: [
+      { size: 'S', stock: 10 },
+      { size: 'M', stock: 10 },
+      { size: 'L', stock: 10 },
+      { size: 'XL', stock: 10 },
+      { size: 'XXL', stock: 5 },
+    ],
+  }
+  isBundleOrderModalOpen.value = true
 }
 </script>
 
@@ -390,7 +408,7 @@ function orderBundleWhatsApp(bundle) {
           <div class="p-6 pt-0 space-y-2 font-mono text-xs uppercase tracking-wider">
             <!-- WA Direct Order -->
             <button
-              @click="orderBundleWhatsApp(bundle)"
+              @click="openBundleOrderModal(bundle)"
               class="w-full py-3 bg-brand-900 hover:bg-brand-800 text-white font-semibold rounded flex items-center justify-center gap-2 shadow-sm transition-colors"
             >
               <MessageCircle class="w-4 h-4 text-emerald-400" />
@@ -565,7 +583,7 @@ function orderBundleWhatsApp(bundle) {
             Tutup
           </button>
           <button
-            @click="orderBundleWhatsApp(selectedBundleModal); closeBundleModal()"
+            @click="openBundleOrderModal(selectedBundleModal); closeBundleModal()"
             class="px-5 py-2.5 text-xs font-mono uppercase tracking-widest bg-brand-900 hover:bg-brand-800 text-white font-bold rounded flex items-center gap-2 shadow-sm"
           >
             <MessageCircle class="w-4 h-4 text-emerald-400" />
@@ -575,6 +593,13 @@ function orderBundleWhatsApp(bundle) {
 
       </div>
     </div>
+
+    <!-- BUNDLE ORDER MODAL -->
+    <OrderModal
+      :isOpen="isBundleOrderModalOpen"
+      :product="bundleOrderModalProduct"
+      @close="isBundleOrderModalOpen = false"
+    />
 
   </div>
 </template>

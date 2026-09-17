@@ -81,13 +81,13 @@ const currentYear = new Date().getFullYear()
           </p>
           <div class="flex flex-col gap-2 font-mono">
             <a
-              :href="`https://wa.me/${catalogStore.storeSettings.whatsapp_number || '6281234567890'}`"
+              :href="`https://wa.me/${catalogStore.activeWhatsAppCP?.whatsapp_number || catalogStore.storeSettings.whatsapp_number || '6281234567890'}`"
               target="_blank"
               class="inline-flex items-center justify-between px-4 py-2.5 text-xs bg-white hover:bg-brand-100 text-brand-800 border border-brand-300 rounded shadow-sm transition-colors"
             >
               <span class="flex items-center gap-2">
                 <MessageCircle class="w-4 h-4 text-emerald-600" />
-                WhatsApp Customer Service
+                <span>{{ catalogStore.activeWhatsAppCP?.name || 'WhatsApp Customer Service' }}</span>
               </span>
               <ArrowUpRight class="w-3.5 h-3.5 text-brand-400" />
             </a>

@@ -32,8 +32,9 @@ function handleSearchSubmit() {
 }
 
 function openWhatsApp() {
-  const wa = catalogStore.storeSettings.whatsapp_number || '6281234567890'
-  const text = encodeURIComponent('Halo Bible Talk, saya ingin bertanya tentang katalog rilisan pakaian.')
+  const activeCP = catalogStore.activeWhatsAppCP
+  const wa = activeCP?.whatsapp_number || catalogStore.storeSettings.whatsapp_number || '6281234567890'
+  const text = encodeURIComponent(`Halo ${activeCP?.name || 'Bible Talk'}, saya ingin bertanya tentang katalog rilisan pakaian.`)
   window.open(`https://wa.me/${wa}?text=${text}`, '_blank')
 }
 </script>

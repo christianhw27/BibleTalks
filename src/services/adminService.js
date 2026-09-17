@@ -204,14 +204,47 @@ export {
 // ==============================================================================
 
 export async function updateStoreSettings(settings) {
-  const { data, error } = await supabase
-    .from('store_settings')
-    .upsert({ id: 'general', ...settings })
-    .select()
-    .single()
+  // Always cache settings in localStorage for immediate frontend reactivity
+  try {
+    localStorage.setItem(
+      'bibletalk_store_settings_local',
+      JSON.stringify({
+        whatsapp_shifts: settings.whatsapp_shifts,
+        whatsapp_shifts_enabled: settings.whatsapp_shifts_enabled,
+      })
+    )
+  } catch (e) {
+    console.warn('Could not cache store settings locally', e)
+  }
 
-  if (error) throw error
-  return data
+  try {
+    const { data, error } = await supabase
+      .from('store_settings')
+      .upsert({ id: 'general', ...settings })
+      .select()
+      .single()
+
+    if (error) throw error
+    return { data, savedToDb: true }
+  } catch (err) {
+    console.warn('Supabase store_settings upsert error:', err.message)
+    // If error is caused by missing whatsapp_shifts or whatsapp_shifts_enabled column in Supabase
+    const baseSettings = { ...settings }
+    delete baseSettings.whatsapp_shifts
+    delete baseSettings.whatsapp_shifts_enabled
+
+    try {
+      const { data } = await supabase
+        .from('store_settings')
+        .upsert({ id: 'general', ...baseSettings })
+        .select()
+        .single()
+      return { data, savedToDb: false, migrationNeeded: true }
+    } catch (fallbackErr) {
+      console.warn('Base store_settings update error:', fallbackErr.message)
+      return { savedToDb: false, migrationNeeded: true }
+    }
+  }
 }
 
 // ==============================================================================
