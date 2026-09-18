@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getWIBTimeParts, getActiveWhatsAppCP, DEFAULT_SHIFTS } from '../../lib/whatsappResolver'
 import { useAuthStore } from '../../stores/authStore'
@@ -776,10 +776,23 @@ async function handleSaveLookbook() {
 function updateBundleSavingsText() {
   const orig = Number(bundleForm.value.originalPrice) || 0
   const bPrice = Number(bundleForm.value.bundlePrice) || 0
-  if (orig > bPrice) {
-    bundleForm.value.savingsText = `Hemat Rp${(orig - bPrice).toLocaleString('id-ID')}`
+  if (orig > bPrice && bPrice > 0) {
+    const diff = orig - bPrice
+    bundleForm.value.savingsText = `Hemat Rp${diff.toLocaleString('id-ID')}`
+  } else if (orig > 0 && bPrice >= orig) {
+    bundleForm.value.savingsText = 'Harga Spesial'
+  } else if (orig === 0 || bPrice === 0) {
+    bundleForm.value.savingsText = ''
   }
 }
+
+// Watchers for automatic real-time calculation
+watch(
+  [() => bundleForm.value.originalPrice, () => bundleForm.value.bundlePrice],
+  () => {
+    updateBundleSavingsText()
+  }
+)
 
 function openAddBundleModal() {
   isBundleEditing.value = false
@@ -2667,13 +2680,21 @@ async function handleLogout() {
             </div>
 
             <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase font-semibold">Teks Hemat</label>
+              <div class="flex items-center justify-between">
+                <label class="block font-mono text-brand-700 uppercase font-semibold">Teks Hemat</label>
+                <span class="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                  ✨ Otomatis
+                </span>
+              </div>
               <input
                 v-model="bundleForm.savingsText"
                 type="text"
-                placeholder="Hemat Rp50.000"
+                placeholder="Otomatis: misal Hemat Rp50.000"
                 class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
               />
+              <p class="text-[10px] text-brand-500 font-mono">
+                Otomatis dihitung dari selisih Harga Asli - Harga Promo (bisa disesuaikan manual).
+              </p>
             </div>
           </div>
 
