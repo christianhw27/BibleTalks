@@ -142,7 +142,7 @@ export async function getStoreSettings() {
 
   const result = data || {
     brand_name: 'Bible Talk',
-    tagline: 'Subculture & Contemporary Streetwear',
+    tagline: 'Made to Wear, Made to Remind',
     whatsapp_number: '',
     announcement_bar: 'NEW ARRIVALS AVAILABLE',
   }
@@ -157,6 +157,12 @@ export async function getStoreSettings() {
       }
       if (result.whatsapp_shifts_enabled === undefined && parsed.whatsapp_shifts_enabled !== undefined) {
         result.whatsapp_shifts_enabled = parsed.whatsapp_shifts_enabled
+      }
+      if (!result.hero_slides && parsed.hero_slides) {
+        result.hero_slides = parsed.hero_slides
+      }
+      if (result.hero_slide_interval === undefined && parsed.hero_slide_interval !== undefined) {
+        result.hero_slide_interval = parsed.hero_slide_interval
       }
     }
   } catch (e) {

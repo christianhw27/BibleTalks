@@ -170,6 +170,8 @@ const settingsForm = ref({
   announcement_bar: '',
   about: '',
   address: '',
+  hero_slides: [],
+  hero_slide_interval: 4,
 })
 
 // Real-time WIB Clock for shift monitoring in Admin
@@ -219,6 +221,47 @@ function removeShift(index) {
   settingsForm.value.whatsapp_shifts.splice(index, 1)
 }
 
+// Hero Slides Management Helpers
+const isUploadingHeroSlide = ref(false)
+
+function addHeroSlide() {
+  if (!Array.isArray(settingsForm.value.hero_slides)) {
+    settingsForm.value.hero_slides = []
+  }
+  const nextNum = settingsForm.value.hero_slides.length + 1
+  settingsForm.value.hero_slides.push({
+    id: 'slide-' + Date.now(),
+    image: '',
+    badge: '★ 16S ULTRA HEAVY',
+    caption: 'BIBLE TALK ARCHIVE // 2026',
+    tag: `REF. BT-HERO-0${nextNum}`,
+  })
+}
+
+function removeHeroSlide(index) {
+  if (settingsForm.value.hero_slides.length <= 1) {
+    notify('Minimal harus ada 1 foto utama untuk hero.', 'error')
+    return
+  }
+  settingsForm.value.hero_slides.splice(index, 1)
+}
+
+async function handleHeroSlideUpload(e, index) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  isUploadingHeroSlide.value = true
+  try {
+    const publicUrl = await uploadImage(file, 'products')
+    settingsForm.value.hero_slides[index].image = publicUrl
+    notify('Foto hero berhasil diunggah!')
+  } catch (err) {
+    notify('Gagal mengunggah foto hero: ' + err.message, 'error')
+  } finally {
+    isUploadingHeroSlide.value = false
+    e.target.value = ''
+  }
+}
+
 // Lookbook Form
 const lookbookForm = ref({
   id: null,
@@ -265,6 +308,18 @@ async function loadAdminData() {
       announcement_bar: catalogStore.storeSettings.announcement_bar || '',
       about: catalogStore.storeSettings.about || '',
       address: catalogStore.storeSettings.address || 'Kabupaten Ngawi, Jawa Timur - Indonesia',
+      hero_slides: Array.isArray(catalogStore.storeSettings.hero_slides) && catalogStore.storeSettings.hero_slides.length > 0
+        ? JSON.parse(JSON.stringify(catalogStore.storeSettings.hero_slides))
+        : [
+            {
+              id: 'slide-1',
+              image: '/hero-product.jpg',
+              badge: '★ 16S ULTRA HEAVY',
+              caption: 'BIBLE TALK ARCHIVE // 2026',
+              tag: 'REF. BT-HERO-01'
+            }
+          ],
+      hero_slide_interval: Number(catalogStore.storeSettings.hero_slide_interval) || 4,
     }
 
     if (books && books.length > 0) {
@@ -933,203 +988,208 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 font-sans">
+  <div class="relative bg-[#faf8f4] min-h-screen overflow-hidden text-brand-950">
     
-    <!-- TOP HEADER -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-300 pb-6">
-      <div>
-        <div class="flex items-center gap-2 font-mono text-xs text-brand-500 uppercase tracking-widest mb-1">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>BIBLE TALK // CMS MANAGEMENT</span>
+    <!-- Ambient Halftone Dot Background Pattern -->
+    <div class="absolute inset-0 bg-halftone text-brand-950/[0.05] pointer-events-none z-0"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 font-sans">
+      
+      <!-- TOP HEADER (Clean Zine Header) -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-brand-950 pb-5">
+        <div>
+          <div class="flex items-center gap-2 font-mono text-[10px] sm:text-xs text-brand-600 uppercase tracking-widest mb-1">
+            <span class="w-2 h-2 bg-emerald-600 border border-brand-950 inline-block"></span>
+            <span class="font-bold">BIBLE TALK // CMS MANAGEMENT & ARCHIVE</span>
+          </div>
+          <h1 class="font-sans font-black text-2xl sm:text-3xl uppercase tracking-tight text-brand-950">
+            Katalog Pakaian & Stok
+          </h1>
+          <p class="font-mono text-xs text-brand-600 mt-0.5">
+            Admin Logged In: <span class="text-brand-950 font-bold">{{ authStore.user?.email || 'Admin' }}</span>
+          </p>
         </div>
-        <h1 class="font-serif font-bold text-2xl sm:text-3xl text-brand-950 uppercase">
-          Katalog Pakaian & Stok
-        </h1>
-        <p class="font-mono text-xs text-brand-600 mt-1">
-          Logged in as: <span class="text-brand-900 font-semibold">{{ authStore.user?.email || 'Admin' }}</span>
-        </p>
+
+        <div class="flex items-center gap-2.5 font-mono text-xs">
+          <router-link
+            to="/"
+            target="_blank"
+            class="px-3.5 py-1.5 bg-white hover:bg-brand-100 text-brand-950 border-2 border-brand-950 font-bold uppercase shadow-[2px_2px_0px_#153227] flex items-center gap-1.5 transition-colors"
+          >
+            <ExternalLink class="w-3.5 h-3.5" />
+            <span>Lihat Website</span>
+          </router-link>
+
+          <button
+            @click="handleLogout"
+            class="px-3.5 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-900 border-2 border-brand-950 font-bold uppercase shadow-[2px_2px_0px_#153227] flex items-center gap-1.5 transition-colors"
+          >
+            <LogOut class="w-3.5 h-3.5" />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <router-link
-          to="/"
-          target="_blank"
-          class="px-4 py-2 text-xs font-mono bg-white hover:bg-brand-100 text-brand-800 border border-brand-300 rounded flex items-center gap-1.5 shadow-sm transition-colors"
-        >
-          <ExternalLink class="w-3.5 h-3.5" />
-          <span>Lihat Website</span>
-        </router-link>
+      <!-- NOTIFICATION TOAST -->
+      <div
+        v-if="notification.text"
+        class="p-3.5 border-2 border-brand-950 text-xs font-mono flex items-center justify-between shadow-[3px_3px_0px_#153227] animate-fadeIn"
+        :class="notification.type === 'error' ? 'bg-rose-100 text-rose-900 border-rose-600' : 'bg-emerald-100 text-emerald-950 border-emerald-700'"
+      >
+        <span class="font-bold">{{ notification.text }}</span>
+        <button @click="notification.text = ''" class="p-1 hover:bg-black/10 transition-colors"><X class="w-4 h-4" /></button>
+      </div>
 
+      <!-- STATS OVERVIEW CARDS (Tactile Zine Stats) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
+        <div class="p-4 bg-white border-2 border-brand-950 shadow-[3px_3px_0px_#153227]">
+          <span class="font-mono text-[10px] text-brand-500 uppercase tracking-wider font-bold block">Total Artikel</span>
+          <div class="font-sans font-black text-2xl sm:text-3xl text-brand-950 mt-1">
+            {{ productsList.length }}
+          </div>
+        </div>
+
+        <div class="p-4 bg-white border-2 border-brand-950 shadow-[3px_3px_0px_#153227]">
+          <span class="font-mono text-[10px] text-brand-500 uppercase tracking-wider font-bold block">Kategori Aktif</span>
+          <div class="font-sans font-black text-2xl sm:text-3xl text-brand-950 mt-1">
+            {{ catalogStore.categories.length }}
+          </div>
+        </div>
+
+        <div class="p-4 bg-white border-2 border-brand-950 shadow-[3px_3px_0px_#153227]">
+          <span class="font-mono text-[10px] text-brand-500 uppercase tracking-wider font-bold block">Signature Drops</span>
+          <div class="font-sans font-black text-2xl sm:text-3xl text-brand-950 mt-1">
+            {{ productsList.filter(p => p.is_featured).length }}
+          </div>
+        </div>
+
+        <div class="p-4 bg-white border-2 border-brand-950 shadow-[3px_3px_0px_#153227]">
+          <span class="font-mono text-[10px] text-brand-500 uppercase tracking-wider font-bold block">WhatsApp CS Channel</span>
+          <div class="font-mono text-xs font-bold text-emerald-800 mt-2 truncate">
+            {{ catalogStore.storeSettings.whatsapp_number || 'Belum diisi' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- TABS BAR (Streetwear Zine Tabs) -->
+      <div class="flex items-center gap-2 border-b-2 border-brand-950 pb-3 font-mono text-xs overflow-x-auto scrollbar-none">
         <button
-          @click="handleLogout"
-          class="px-4 py-2 text-xs font-mono bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded flex items-center gap-1.5 transition-colors font-medium"
+          @click="activeTab = 'products'"
+          class="px-3.5 py-2 uppercase border-2 border-brand-950 font-bold transition-all flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-xs"
+          :class="activeTab === 'products' ? 'bg-brand-950 text-scripture-gold shadow-[2px_2px_0px_#153227] -rotate-0.5' : 'bg-white text-brand-950 hover:bg-brand-100'"
         >
-          <LogOut class="w-3.5 h-3.5" />
-          <span>Logout</span>
+          <Package class="w-3.5 h-3.5" />
+          <span>Katalog Pakaian ({{ productsList.length }})</span>
         </button>
-      </div>
-    </div>
 
-    <!-- NOTIFICATION TOAST -->
-    <div
-      v-if="notification.text"
-      class="p-4 rounded text-xs font-mono flex items-center justify-between transition-all shadow-sm"
-      :class="notification.type === 'error' ? 'bg-rose-50 border border-rose-200 text-rose-800' : 'bg-emerald-50 border border-emerald-200 text-emerald-800'"
-    >
-      <span>{{ notification.text }}</span>
-      <button @click="notification.text = ''"><X class="w-4 h-4" /></button>
-    </div>
-
-    <!-- STATS OVERVIEW CARDS -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="p-5 bg-white border border-brand-300 rounded shadow-sm">
-        <span class="font-mono text-[11px] text-brand-500 uppercase">Total Artikel</span>
-        <div class="font-serif font-bold text-3xl text-brand-950 mt-1">
-          {{ productsList.length }}
-        </div>
-      </div>
-
-      <div class="p-5 bg-white border border-brand-300 rounded shadow-sm">
-        <span class="font-mono text-[11px] text-brand-500 uppercase">Kategori Aktif</span>
-        <div class="font-serif font-bold text-3xl text-brand-950 mt-1">
-          {{ catalogStore.categories.length }}
-        </div>
-      </div>
-
-      <div class="p-5 bg-white border border-brand-300 rounded shadow-sm">
-        <span class="font-mono text-[11px] text-brand-500 uppercase">Signature Drops</span>
-        <div class="font-serif font-bold text-3xl text-brand-950 mt-1">
-          {{ productsList.filter(p => p.is_featured).length }}
-        </div>
-      </div>
-
-      <div class="p-5 bg-white border border-brand-300 rounded shadow-sm">
-        <span class="font-mono text-[11px] text-brand-500 uppercase">WhatsApp CS Channel</span>
-        <div class="font-mono text-xs font-semibold text-emerald-700 mt-2 truncate">
-          {{ catalogStore.storeSettings.whatsapp_number || 'Belum diisi' }}
-        </div>
-      </div>
-    </div>
-
-    <!-- TABS BAR -->
-    <div class="flex items-center gap-6 border-b border-brand-300 font-mono text-xs overflow-x-auto">
-      <button
-        @click="activeTab = 'products'"
-        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
-        :class="activeTab === 'products' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
-      >
-        <Package class="w-4 h-4" />
-        <span>Katalog Pakaian ({{ productsList.length }})</span>
-      </button>
-
-      <button
-        @click="activeTab = 'categories'"
-        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
-        :class="activeTab === 'categories' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
-      >
-        <Layers class="w-4 h-4" />
-        <span>Kategori Koleksi ({{ categoriesList.length }})</span>
-      </button>
-
-      <button
-        @click="activeTab = 'bundles'"
-        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
-        :class="activeTab === 'bundles' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
-      >
-        <Boxes class="w-4 h-4" />
-        <span>Paket Bundling ({{ bundlesList.length }})</span>
-      </button>
-
-      <button
-        @click="activeTab = 'settings'"
-        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
-        :class="activeTab === 'settings' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
-      >
-        <Settings class="w-4 h-4" />
-        <span>Profil Brand & WhatsApp</span>
-      </button>
-
-      <button
-        @click="activeTab = 'lookbook'"
-        class="pb-3 border-b-2 font-semibold transition-colors flex items-center gap-2 whitespace-nowrap"
-        :class="activeTab === 'lookbook' ? 'border-brand-900 text-brand-950 font-bold' : 'border-transparent text-brand-500 hover:text-brand-800'"
-      >
-        <Camera class="w-4 h-4" />
-        <span>Editorial Lookbook</span>
-      </button>
-    </div>
-
-    <!-- TAB 1: PRODUCTS LIST TABLE -->
-    <div v-if="activeTab === 'products'" class="space-y-4">
-      <div class="flex items-center justify-between">
-        <span class="font-mono text-xs text-brand-600">
-          Daftar pakaian, kelola varian ukuran, dan unggah foto langsung dari browser.
-        </span>
         <button
-          @click="openAddModal"
-          class="px-4 py-2.5 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-semibold rounded flex items-center gap-2 shadow-sm transition-colors"
+          @click="activeTab = 'categories'"
+          class="px-3.5 py-2 uppercase border-2 border-brand-950 font-bold transition-all flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-xs"
+          :class="activeTab === 'categories' ? 'bg-brand-950 text-scripture-gold shadow-[2px_2px_0px_#153227] -rotate-0.5' : 'bg-white text-brand-950 hover:bg-brand-100'"
         >
-          <Plus class="w-4 h-4" />
-          <span>Tambah Artikel Pakaian</span>
+          <Layers class="w-3.5 h-3.5" />
+          <span>Kategori Koleksi ({{ categoriesList.length }})</span>
+        </button>
+
+        <button
+          @click="activeTab = 'bundles'"
+          class="px-3.5 py-2 uppercase border-2 border-brand-950 font-bold transition-all flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-xs"
+          :class="activeTab === 'bundles' ? 'bg-brand-950 text-scripture-gold shadow-[2px_2px_0px_#153227] -rotate-0.5' : 'bg-white text-brand-950 hover:bg-brand-100'"
+        >
+          <Boxes class="w-3.5 h-3.5" />
+          <span>Paket Bundling ({{ bundlesList.length }})</span>
+        </button>
+
+        <button
+          @click="activeTab = 'settings'"
+          class="px-3.5 py-2 uppercase border-2 border-brand-950 font-bold transition-all flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-xs"
+          :class="activeTab === 'settings' ? 'bg-brand-950 text-scripture-gold shadow-[2px_2px_0px_#153227] -rotate-0.5' : 'bg-white text-brand-950 hover:bg-brand-100'"
+        >
+          <Settings class="w-3.5 h-3.5" />
+          <span>Profil & WhatsApp</span>
+        </button>
+
+        <button
+          @click="activeTab = 'lookbook'"
+          class="px-3.5 py-2 uppercase border-2 border-brand-950 font-bold transition-all flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-xs"
+          :class="activeTab === 'lookbook' ? 'bg-brand-950 text-scripture-gold shadow-[2px_2px_0px_#153227] -rotate-0.5' : 'bg-white text-brand-950 hover:bg-brand-100'"
+        >
+          <Camera class="w-3.5 h-3.5" />
+          <span>Editorial Lookbook</span>
         </button>
       </div>
 
-      <!-- Table Box -->
-      <div class="bg-white border border-brand-300 rounded shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left font-sans text-xs">
-            <thead class="bg-brand-100/70 text-brand-700 font-mono uppercase border-b border-brand-300">
-              <tr>
-                <th class="p-3.5">Artikel Pakaian</th>
-                <th class="p-3.5">Kategori</th>
-                <th class="p-3.5">Harga</th>
-                <th class="p-3.5">Stok per Ukuran</th>
-                <th class="p-3.5">Status</th>
-                <th class="p-3.5 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-brand-200 text-brand-800">
-              <tr v-if="productsList.length === 0">
-                <td colspan="6" class="p-10 text-center text-brand-500 font-mono">
-                  Belum ada produk di database. Klik tombol "Tambah Artikel Pakaian" untuk membuat koleksi baru.
-                </td>
-              </tr>
-              <tr
-                v-for="prod in productsList"
-                :key="prod.id"
-                class="hover:bg-brand-50 transition-colors"
-              >
-                <!-- Image & Title -->
-                <td class="p-3.5 flex items-center gap-3">
-                  <img
-                    :src="prod.images?.[0] || 'https://via.placeholder.com/80'"
-                    :alt="prod.title"
-                    class="w-12 h-14 object-cover rounded bg-brand-100 border border-brand-300 flex-shrink-0"
-                  />
-                  <div>
-                    <span class="font-serif font-bold text-brand-950 block text-sm">{{ prod.title }}</span>
-                    <span class="font-mono text-[10px] text-brand-500">/{{ prod.slug }}</span>
-                  </div>
-                </td>
+      <!-- TAB 1: PRODUCTS LIST TABLE -->
+      <div v-if="activeTab === 'products'" class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span class="font-mono text-xs text-brand-600">
+            Daftar pakaian, kelola varian ukuran, dan unggah foto langsung dari browser.
+          </span>
+          <button
+            @click="openAddModal"
+            class="self-start sm:self-auto px-4 py-2 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono text-xs uppercase font-black border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 transition-all active:translate-x-0.5 active:translate-y-0.5"
+          >
+            <Plus class="w-4 h-4" />
+            <span>Tambah Artikel Pakaian</span>
+          </button>
+        </div>
 
-                <!-- Category -->
-                <td class="p-3.5 font-mono text-brand-600">
-                  {{ prod.category?.name || 'Uncategorized' }}
-                </td>
+        <!-- Table Box -->
+        <div class="bg-white border-2 border-brand-950 shadow-[4px_4px_0px_#153227] overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left font-sans text-xs">
+              <thead class="bg-brand-950 text-scripture-gold font-mono uppercase border-b-2 border-brand-950 text-[11px]">
+                <tr>
+                  <th class="p-3">Artikel Pakaian</th>
+                  <th class="p-3">Kategori</th>
+                  <th class="p-3">Harga</th>
+                  <th class="p-3">Stok per Ukuran</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-brand-200 text-brand-800">
+                <tr v-if="productsList.length === 0">
+                  <td colspan="6" class="p-10 text-center text-brand-500 font-mono">
+                    Belum ada produk di database. Klik tombol "Tambah Artikel Pakaian" untuk membuat koleksi baru.
+                  </td>
+                </tr>
+                <tr
+                  v-for="prod in productsList"
+                  :key="prod.id"
+                  class="hover:bg-brand-50 transition-colors"
+                >
+                  <!-- Image & Title -->
+                  <td class="p-3 flex items-center gap-3">
+                    <img
+                      :src="prod.images?.[0] || 'https://via.placeholder.com/80'"
+                      :alt="prod.title"
+                      class="w-11 h-13 object-cover bg-brand-100 border border-brand-950 flex-shrink-0"
+                    />
+                    <div>
+                      <span class="font-sans font-bold text-brand-950 block text-sm">{{ prod.title }}</span>
+                      <span class="font-mono text-[10px] text-brand-500">/{{ prod.slug }}</span>
+                    </div>
+                  </td>
 
-                <!-- Price -->
-                <td class="p-3.5 font-mono font-semibold text-brand-950">
-                  {{ catalogStore.formatPrice(prod.price) }}
-                </td>
+                  <!-- Category -->
+                  <td class="p-3 font-mono text-brand-700 font-medium">
+                    {{ prod.category?.name || 'Uncategorized' }}
+                  </td>
+
+                  <!-- Price -->
+                  <td class="p-3 font-mono font-bold text-brand-950">
+                    {{ catalogStore.formatPrice(prod.price) }}
+                  </td>
 
                 <!-- Variants / Stock Summary -->
-                <td class="p-3.5 font-mono">
+                <td class="p-3 font-mono">
                   <div class="flex items-center gap-1.5 flex-wrap">
                     <span
                       v-for="v in prod.variants"
                       :key="v.id"
-                      class="px-1.5 py-0.5 rounded text-[10px] border"
-                      :class="v.stock > 0 ? 'bg-brand-100 text-brand-800 border-brand-300' : 'bg-rose-50 text-rose-700 border-rose-200'"
+                      class="px-1.5 py-0.5 text-[10px] font-bold border"
+                      :class="v.stock > 0 ? 'bg-white text-brand-950 border-brand-950' : 'bg-rose-100 text-rose-800 border-rose-400'"
                     >
                       {{ v.size }}: {{ v.stock }}
                     </span>
@@ -1137,13 +1197,13 @@ async function handleLogout() {
                 </td>
 
                 <!-- Status -->
-                <td class="p-3.5">
+                <td class="p-3">
                   <span
-                    class="px-2.5 py-0.5 rounded font-mono text-[10px] uppercase font-semibold border"
+                    class="px-2 py-0.5 font-mono text-[10px] uppercase font-bold border-2 border-brand-950"
                     :class="[
-                      prod.status === 'active' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                      prod.status === 'sold_out' ? 'bg-rose-50 text-rose-800 border-rose-200' :
-                      'bg-brand-100 text-brand-600 border-brand-300'
+                      prod.status === 'active' ? 'bg-emerald-200 text-emerald-950' :
+                      prod.status === 'sold_out' ? 'bg-rose-200 text-rose-950' :
+                      'bg-brand-100 text-brand-800'
                     ]"
                   >
                     {{ prod.status }}
@@ -1151,17 +1211,17 @@ async function handleLogout() {
                 </td>
 
                 <!-- Actions -->
-                <td class="p-3.5 text-right space-x-2">
+                <td class="p-3 text-right space-x-1.5 font-mono">
                   <button
                     @click="openEditModal(prod)"
-                    class="p-1.5 text-brand-600 hover:text-brand-900 bg-brand-100 hover:bg-brand-200 border border-brand-300 rounded shadow-sm"
+                    class="p-1.5 text-brand-950 bg-white hover:bg-brand-100 border-2 border-brand-950 shadow-[1px_1px_0px_#153227] transition-all active:translate-x-0.5 active:translate-y-0.5"
                     title="Edit Produk"
                   >
                     <Edit class="w-3.5 h-3.5" />
                   </button>
                   <button
                     @click="handleDeleteProduct(prod)"
-                    class="p-1.5 text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded shadow-sm"
+                    class="p-1.5 text-rose-900 bg-rose-100 hover:bg-rose-200 border-2 border-brand-950 shadow-[1px_1px_0px_#153227] transition-all active:translate-x-0.5 active:translate-y-0.5"
                     title="Hapus Produk"
                   >
                     <Trash2 class="w-3.5 h-3.5" />
@@ -1175,29 +1235,189 @@ async function handleLogout() {
     </div>
 
     <!-- TAB 2: STORE SETTINGS & WHATSAPP -->
-    <div v-else-if="activeTab === 'settings'" class="max-w-4xl bg-white border border-brand-300 rounded shadow-sm p-6 sm:p-8 space-y-6">
-      <h2 class="font-serif font-bold text-lg text-brand-950 uppercase">
-        Profil Brand & Kontak Pemesanan
-      </h2>
+    <div v-else-if="activeTab === 'settings'" class="max-w-4xl bg-white border-2 border-brand-950 shadow-[4px_4px_0px_#153227] p-6 sm:p-8 space-y-6">
+      <div class="border-b-2 border-brand-950 pb-3">
+        <h2 class="font-sans font-black text-xl text-brand-950 uppercase tracking-tight">
+          Profil Brand & Kontak Pemesanan
+        </h2>
+        <p class="font-mono text-xs text-brand-600 mt-0.5">
+          Atur identitas brand, hero carousel beranda, jadwal shift WhatsApp, dan alamat toko.
+        </p>
+      </div>
 
-      <form @submit.prevent="handleSaveSettings" class="space-y-4 font-sans text-xs">
-        <div class="space-y-1">
-          <label class="block font-mono text-brand-700 uppercase">Nama Brand Pakaian</label>
+      <form @submit.prevent="handleSaveSettings" class="space-y-5 font-sans text-xs">
+        <div class="space-y-1 font-mono">
+          <label class="block uppercase font-bold text-brand-950">Nama Brand Pakaian</label>
           <input
             v-model="settingsForm.brand_name"
             type="text"
             required
-            class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-medium"
+            class="w-full px-3.5 py-2 bg-white border-2 border-brand-950 text-brand-950 font-bold shadow-[2px_2px_0px_#153227]"
           />
         </div>
 
-        <div class="space-y-1">
-          <label class="block font-mono text-brand-700 uppercase">Tagline / Slogan</label>
+        <div class="space-y-1 font-mono">
+          <label class="block uppercase font-bold text-brand-950">Tagline / Slogan</label>
           <input
             v-model="settingsForm.tagline"
             type="text"
-            class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950"
+            class="w-full px-3.5 py-2 bg-white border-2 border-brand-950 text-brand-950 shadow-[2px_2px_0px_#153227]"
           />
+        </div>
+
+        <!-- PENGATURAN FOTO HERO DEPAN & AUTO-SLIDER BERANDA -->
+        <div class="border-2 border-brand-950 bg-[#faf8f4] p-5 sm:p-6 space-y-6 shadow-[3px_3px_0px_#153227]">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-brand-950/20">
+            <div>
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-brand-950 text-scripture-gold font-mono text-[10px] uppercase font-black tracking-wider mb-1">
+                <Layers class="w-3.5 h-3.5" />
+                <span>Foto Utama Beranda • Auto-Slider</span>
+              </div>
+              <h3 class="font-sans font-black text-lg text-brand-950 uppercase tracking-tight">
+                Kelola Foto Hero Depan & Slider
+              </h3>
+              <p class="text-xs text-brand-700 font-sans mt-0.5">
+                Admin dapat mengganti foto hero depan, menambah foto baru, dan mengatur kecepatan durasi slide.
+              </p>
+            </div>
+
+            <!-- Pengaturan Interval Durasi Detik -->
+            <div class="flex items-center gap-2 bg-white border-2 border-brand-950 px-3 py-2 shadow-[2px_2px_0px_#153227]">
+              <Clock class="w-4 h-4 text-brand-950" />
+              <div class="flex items-center gap-1.5 font-mono text-xs">
+                <span class="text-brand-950 font-bold">Durasi Slide:</span>
+                <input
+                  v-model.number="settingsForm.hero_slide_interval"
+                  type="number"
+                  min="2"
+                  max="30"
+                  class="w-14 px-2 py-1 bg-brand-50 border border-brand-950 font-bold text-center text-brand-950"
+                />
+                <span class="text-brand-600 font-medium">detik</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- List Hero Slides -->
+          <div class="space-y-4">
+            <div
+              v-for="(slide, sIdx) in settingsForm.hero_slides"
+              :key="slide.id || sIdx"
+              class="p-4 rounded-xl border border-brand-300 bg-[#fbfbfa] space-y-3"
+            >
+              <div class="flex items-center justify-between gap-3 pb-3 border-b border-brand-200">
+                <div class="flex items-center gap-2.5 font-mono text-xs font-bold text-brand-950">
+                  <span class="w-6 h-6 rounded-full bg-brand-950 text-scripture-gold flex items-center justify-center text-[11px]">
+                    {{ sIdx + 1 }}
+                  </span>
+                  <span>SLIDE FOTO #{{ sIdx + 1 }}</span>
+                </div>
+
+                <button
+                  type="button"
+                  @click="removeHeroSlide(sIdx)"
+                  :disabled="settingsForm.hero_slides.length <= 1"
+                  class="text-xs font-mono text-rose-600 hover:text-rose-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  <Trash2 class="w-3.5 h-3.5" />
+                  <span>Hapus Slide</span>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
+                <!-- Image Preview & Upload (Col 4) -->
+                <div class="sm:col-span-4 space-y-2">
+                  <div class="aspect-[4/5] sm:aspect-square w-full rounded-lg border-2 border-brand-950 overflow-hidden bg-brand-100 relative group">
+                    <img
+                      v-if="slide.image"
+                      :src="slide.image"
+                      alt="Hero Slide Preview"
+                      class="w-full h-full object-cover"
+                    />
+                    <div v-else class="w-full h-full flex flex-col items-center justify-center text-brand-400 p-4 text-center">
+                      <Camera class="w-8 h-8 mb-1" />
+                      <span class="text-[11px] font-mono">Belum ada foto</span>
+                    </div>
+                  </div>
+
+                  <label class="cursor-pointer w-full py-2 bg-white hover:bg-brand-50 border border-brand-300 rounded font-mono text-xs text-brand-900 flex items-center justify-center gap-1.5 shadow-2xs">
+                    <Upload class="w-3.5 h-3.5 text-brand-600" />
+                    <span>{{ isUploadingHeroSlide ? 'Mengunggah...' : 'Upload Foto Baru' }}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      class="hidden"
+                      :disabled="isUploadingHeroSlide"
+                      @change="(e) => handleHeroSlideUpload(e, sIdx)"
+                    />
+                  </label>
+                </div>
+
+                <!-- Inputs (Col 8) -->
+                <div class="sm:col-span-8 space-y-3 font-mono text-xs">
+                  <div class="space-y-1">
+                    <label class="block uppercase tracking-wider text-brand-700 font-bold text-[11px]">
+                      URL Gambar (Bisa diisi link atau gunakan tombol Upload di samping)
+                    </label>
+                    <input
+                      v-model="slide.image"
+                      type="text"
+                      placeholder="/hero-product.jpg atau https://..."
+                      class="w-full px-3 py-1.5 bg-white border border-brand-300 rounded text-brand-950 font-sans text-xs"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                      <label class="block uppercase tracking-wider text-brand-700 font-bold text-[11px]">
+                        Teks Stiker Slap (Kuning)
+                      </label>
+                      <input
+                        v-model="slide.badge"
+                        type="text"
+                        placeholder="★ 16S ULTRA HEAVY"
+                        class="w-full px-3 py-1.5 bg-white border border-brand-300 rounded text-brand-950 font-bold"
+                      />
+                    </div>
+
+                    <div class="space-y-1">
+                      <label class="block uppercase tracking-wider text-brand-700 font-bold text-[11px]">
+                        Kode Arsip / Tag
+                      </label>
+                      <input
+                        v-model="slide.tag"
+                        type="text"
+                        placeholder="REF. BT-HERO-01"
+                        class="w-full px-3 py-1.5 bg-white border border-brand-300 rounded text-brand-950 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="space-y-1">
+                    <label class="block uppercase tracking-wider text-brand-700 font-bold text-[11px]">
+                      Caption Footer Bingkai
+                    </label>
+                    <input
+                      v-model="slide.caption"
+                      type="text"
+                      placeholder="BIBLE TALK ARCHIVE // 2026"
+                      class="w-full px-3 py-1.5 bg-white border border-brand-300 rounded text-brand-950 font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tombol Tambah Slide Baru -->
+          <button
+            type="button"
+            @click="addHeroSlide"
+            class="w-full py-2.5 border-2 border-dashed border-brand-400 hover:border-brand-900 rounded-xl text-brand-800 hover:text-brand-950 font-mono text-xs uppercase font-bold flex items-center justify-center gap-2 hover:bg-brand-50/50 transition-colors"
+          >
+            <Plus class="w-4 h-4" />
+            <span>Tambah Slide Foto Hero Baru</span>
+          </button>
         </div>
 
         <!-- SISTEM ROLLING CONTACT PERSON (CP) WHATSAPP - WIB BASED -->
@@ -1268,7 +1488,7 @@ async function handleLogout() {
           <!-- Shifts List -->
           <div v-if="settingsForm.whatsapp_shifts_enabled" class="space-y-4">
             <div class="flex items-center justify-between">
-              <h4 class="font-mono text-xs uppercase tracking-widest text-brand-900 font-bold flex items-center gap-2">
+              <h4 class="font-mono text-xs uppercase tracking-widest text-brand-950 font-bold flex items-center gap-2">
                 <span>Daftar Shift Kerja CP</span>
                 <span class="text-[11px] font-normal text-brand-500">({{ settingsForm.whatsapp_shifts?.length || 0 }} shift terdaftar)</span>
               </h4>
@@ -1276,7 +1496,7 @@ async function handleLogout() {
               <button
                 type="button"
                 @click="addShift"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider bg-brand-900 hover:bg-brand-800 text-white rounded shadow-sm transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider bg-brand-950 hover:bg-brand-900 text-scripture-gold border-2 border-brand-950 shadow-[2px_2px_0px_#153227] transition-all"
               >
                 <Plus class="w-3.5 h-3.5" />
                 <span>Tambah Shift</span>
@@ -1287,41 +1507,41 @@ async function handleLogout() {
               <div
                 v-for="(shift, idx) in settingsForm.whatsapp_shifts"
                 :key="shift.id || idx"
-                class="p-5 rounded-xl border transition-all bg-[#fbfbfa]"
+                class="p-4 sm:p-5 border-2 border-brand-950 transition-all bg-white shadow-[2px_2px_0px_#153227]"
                 :class="[
                   shift.is_active !== false
-                    ? 'border-brand-300 hover:border-brand-500 shadow-xs'
-                    : 'border-brand-200 bg-brand-100/40 opacity-75'
+                    ? 'opacity-100'
+                    : 'bg-brand-100/40 opacity-70'
                 ]"
               >
                 <!-- Card Top Row: Badge, Name Input, Status & Delete Button -->
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-brand-200">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b-2 border-brand-950">
                   <div class="flex items-center gap-3 flex-grow max-w-md">
-                    <span class="w-8 h-8 rounded-full bg-brand-900 text-white font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 shadow-xs">
+                    <span class="w-7 h-7 bg-brand-950 text-scripture-gold font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 border border-brand-950">
                       {{ idx + 1 }}
                     </span>
                     <div class="flex-grow">
-                      <label class="block text-[10px] font-mono uppercase tracking-wider text-brand-500 font-bold mb-1">
+                      <label class="block text-[10px] font-mono uppercase tracking-wider text-brand-700 font-bold mb-1">
                         Nama / Label Shift CP
                       </label>
                       <input
                         v-model="shift.name"
                         type="text"
                         placeholder="Contoh: CP 1 (Shift Pagi)"
-                        class="w-full px-3 py-1.5 bg-white border border-brand-300 rounded font-semibold text-sm text-brand-950 focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 shadow-2xs"
+                        class="w-full px-3 py-1.5 bg-white border-2 border-brand-950 font-bold text-sm text-brand-950 focus:outline-none"
                       />
                     </div>
                   </div>
 
                   <!-- Toggle Aktif & Tombol Hapus -->
-                  <div class="flex items-center gap-3 self-end sm:self-center">
-                    <label class="flex items-center gap-2 cursor-pointer text-xs font-mono select-none px-3 py-1.5 bg-white border border-brand-300 rounded-lg hover:border-brand-500 transition-colors shadow-2xs">
+                  <div class="flex items-center gap-2.5 self-end sm:self-center">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-mono select-none px-2.5 py-1.5 bg-white border-2 border-brand-950 shadow-[1px_1px_0px_#153227] transition-colors">
                       <input
                         type="checkbox"
                         v-model="shift.is_active"
-                        class="w-4 h-4 accent-emerald-600 rounded"
+                        class="w-4 h-4 accent-emerald-600 rounded-none"
                       />
-                      <span :class="shift.is_active !== false ? 'text-emerald-700 font-bold' : 'text-brand-400 font-medium'">
+                      <span :class="shift.is_active !== false ? 'text-emerald-800 font-bold' : 'text-brand-400 font-medium'">
                         {{ shift.is_active !== false ? 'Aktif' : 'Non-aktif' }}
                       </span>
                     </label>
@@ -1329,7 +1549,7 @@ async function handleLogout() {
                     <button
                       type="button"
                       @click="removeShift(idx)"
-                      class="p-2 text-brand-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                      class="p-1.5 text-rose-900 bg-rose-100 hover:bg-rose-200 border-2 border-brand-950 shadow-[1px_1px_0px_#153227] transition-all"
                       title="Hapus shift ini"
                     >
                       <Trash2 class="w-4 h-4" />
@@ -1338,46 +1558,46 @@ async function handleLogout() {
                 </div>
 
                 <!-- Card Bottom Row: Jam Mulai, Jam Selesai, No. WhatsApp Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3.5 font-mono text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-3.5 font-mono text-xs">
                   <!-- Jam Mulai -->
                   <div class="space-y-1">
-                    <label class="block text-[11px] uppercase tracking-wider text-brand-700 font-bold">
-                      Jam Mulai (WIB) <span class="text-rose-500">*</span>
+                    <label class="block text-[11px] uppercase tracking-wider text-brand-950 font-bold">
+                      Jam Mulai (WIB) <span class="text-rose-600">*</span>
                     </label>
                     <input
                       v-model="shift.start_time"
                       type="time"
                       required
-                      class="w-full px-3 py-2 bg-white border border-brand-300 rounded-lg text-sm text-brand-950 font-mono font-medium focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 shadow-2xs"
+                      class="w-full px-3 py-1.5 bg-white border-2 border-brand-950 text-sm text-brand-950 font-mono font-bold focus:outline-none"
                     />
                   </div>
 
                   <!-- Jam Selesai -->
                   <div class="space-y-1">
-                    <label class="block text-[11px] uppercase tracking-wider text-brand-700 font-bold">
-                      Jam Selesai (WIB) <span class="text-rose-500">*</span>
+                    <label class="block text-[11px] uppercase tracking-wider text-brand-950 font-bold">
+                      Jam Selesai (WIB) <span class="text-rose-600">*</span>
                     </label>
                     <input
                       v-model="shift.end_time"
                       type="time"
                       required
-                      class="w-full px-3 py-2 bg-white border border-brand-300 rounded-lg text-sm text-brand-950 font-mono font-medium focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 shadow-2xs"
+                      class="w-full px-3 py-1.5 bg-white border-2 border-brand-950 text-sm text-brand-950 font-mono font-bold focus:outline-none"
                     />
                   </div>
 
                   <!-- WhatsApp Number -->
                   <div class="space-y-1">
-                    <label class="block text-[11px] uppercase tracking-wider text-brand-700 font-bold">
-                      No. WhatsApp CP <span class="text-rose-500">*</span>
+                    <label class="block text-[11px] uppercase tracking-wider text-brand-950 font-bold">
+                      No. WhatsApp CP <span class="text-rose-600">*</span>
                     </label>
                     <div class="relative">
-                      <Phone class="w-4 h-4 text-brand-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Phone class="w-4 h-4 text-brand-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <input
                         v-model="shift.whatsapp_number"
                         type="text"
                         placeholder="6281234567890"
                         required
-                        class="w-full pl-9 pr-3 py-2 bg-white border border-brand-300 rounded-lg text-sm text-brand-950 font-mono focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 shadow-2xs"
+                        class="w-full pl-9 pr-3 py-1.5 bg-white border-2 border-brand-950 text-sm text-brand-950 font-mono font-bold focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1388,9 +1608,9 @@ async function handleLogout() {
           </div>
 
           <!-- Fallback / Master WhatsApp Number -->
-          <div class="p-4 rounded-lg bg-brand-50 border border-brand-200 space-y-2">
+          <div class="p-4 bg-white border-2 border-brand-950 shadow-[2px_2px_0px_#153227] space-y-2">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label class="block font-mono text-xs text-brand-800 font-semibold uppercase">
+              <label class="block font-mono text-xs text-brand-950 font-bold uppercase">
                 Nomor WhatsApp Fallback / Cadangan Toko (Tanpa simbol +)
               </label>
               <span class="text-[10px] font-mono text-brand-500">
@@ -1398,79 +1618,79 @@ async function handleLogout() {
               </span>
             </div>
             <div class="relative max-w-md">
-              <Phone class="w-4 h-4 text-brand-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Phone class="w-4 h-4 text-brand-600 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 v-model="settingsForm.whatsapp_number"
                 type="text"
                 placeholder="6281234567890"
                 required
-                class="w-full pl-9 pr-3 py-2 bg-white border border-brand-300 rounded text-brand-950 font-mono text-sm"
+                class="w-full pl-9 pr-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono text-sm font-bold"
               />
             </div>
           </div>
 
         </div>
 
-        <div class="space-y-1">
-          <label class="block font-mono text-brand-700 uppercase">Link Instagram Resmi (URL / Handle)</label>
+        <div class="space-y-1 font-mono">
+          <label class="block uppercase font-bold text-brand-950">Link Instagram Resmi (URL / Handle)</label>
           <input
             v-model="settingsForm.instagram_url"
             type="text"
             placeholder="https://instagram.com/bibletalk.co"
-            class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+            class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono"
           />
           <p class="text-[11px] text-brand-500 font-mono">
             Format URL lengkap, misal: https://instagram.com/bibletalk.co. Tombol Instagram di footer akan mengarah ke link ini.
           </p>
         </div>
 
-        <div class="space-y-1">
-          <label class="block font-mono text-brand-700 uppercase">Teks Announcement Bar (Running Text)</label>
+        <div class="space-y-1 font-mono">
+          <label class="block uppercase font-bold text-brand-950">Teks Announcement Bar (Running Text)</label>
           <input
             v-model="settingsForm.announcement_bar"
             type="text"
-            class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950"
+            class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950"
           />
         </div>
 
-        <div class="space-y-1">
-          <label class="block font-mono text-brand-700 uppercase">Tentang Brand (Bio / Manifesto)</label>
+        <div class="space-y-1 font-mono">
+          <label class="block uppercase font-bold text-brand-950">Tentang Brand (Bio / Manifesto)</label>
           <textarea
             v-model="settingsForm.about"
             rows="3"
-            class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 leading-relaxed"
+            class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 leading-relaxed font-sans"
           ></textarea>
         </div>
 
-        <div class="space-y-1">
-          <label class="block font-mono text-brand-700 uppercase">Lokasi Produksi / Alamat Workshop</label>
+        <div class="space-y-1 font-mono">
+          <label class="block uppercase font-bold text-brand-950">Lokasi Produksi / Alamat Workshop</label>
           <input
             v-model="settingsForm.address"
             type="text"
             placeholder="Kabupaten Ngawi, Jawa Timur - Indonesia"
-            class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950"
+            class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950"
           />
         </div>
 
         <button
           type="submit"
           :disabled="actionLoading"
-          class="px-6 py-2.5 bg-brand-900 hover:bg-brand-800 text-white font-mono uppercase font-bold rounded flex items-center gap-2 shadow"
+          class="px-6 py-2.5 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono uppercase font-black border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 active:translate-x-0.5 active:translate-y-0.5 transition-all"
         >
           <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />
-          <span>Simpan Perubahan</span>
+          <span>Simpan Perubahan Pengaturan</span>
         </button>
       </form>
     </div>
 
     <!-- TAB 3: EDITORIAL LOOKBOOK MANAGEMENT -->
-    <div v-else-if="activeTab === 'lookbook'" class="max-w-3xl bg-white border border-brand-300 rounded shadow-sm p-6 space-y-8">
-      <div>
-        <h2 class="font-serif font-bold text-xl text-brand-950 uppercase tracking-tight">
+    <div v-else-if="activeTab === 'lookbook'" class="max-w-4xl bg-white border-2 border-brand-950 shadow-[4px_4px_0px_#153227] p-6 sm:p-8 space-y-6">
+      <div class="border-b-2 border-brand-950 pb-3">
+        <h2 class="font-sans font-black text-xl text-brand-950 uppercase tracking-tight">
           Kelola Editorial Lookbook & Banner
         </h2>
-        <p class="text-xs text-brand-600 font-sans mt-1">
-          Ubah judul koleksi, narasi cerita, foto cover utama, serta galeri foto model yang tampil di Beranda dan halaman Lookbook.
+        <p class="font-mono text-xs text-brand-600 mt-0.5">
+          Ubah judul koleksi, narasi cerita, foto cover utama, serta galeri foto yang tampil di Beranda dan halaman Lookbook.
         </p>
       </div>
 
@@ -1478,54 +1698,54 @@ async function handleLogout() {
         
         <!-- Title & Season -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="space-y-1">
-            <label class="block font-mono text-brand-700 uppercase">Judul Koleksi Lookbook *</label>
+          <div class="space-y-1 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Judul Koleksi Lookbook *</label>
             <input
               v-model="lookbookForm.title"
               type="text"
               required
               placeholder="Drop 01 // Genesis & Concrete Youth"
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-medium"
+              class="w-full px-3.5 py-2 bg-white border-2 border-brand-950 text-brand-950 font-bold shadow-[2px_2px_0px_#153227]"
             />
           </div>
 
-          <div class="space-y-1">
-            <label class="block font-mono text-brand-700 uppercase">Tagline Season *</label>
+          <div class="space-y-1 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Tagline Season *</label>
             <input
               v-model="lookbookForm.season"
               type="text"
               required
               placeholder="SEASON 2026 EDITORIAL"
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+              class="w-full px-3.5 py-2 bg-white border-2 border-brand-950 text-brand-950 shadow-[2px_2px_0px_#153227]"
             />
           </div>
         </div>
 
         <!-- Description -->
-        <div class="space-y-1">
-          <label class="block font-mono text-brand-700 uppercase">Deskripsi Editorial / Narasi Koleksi</label>
+        <div class="space-y-1 font-mono">
+          <label class="block uppercase font-bold text-brand-950">Deskripsi Editorial / Narasi Koleksi</label>
           <textarea
             v-model="lookbookForm.description"
             rows="3"
-            placeholder="Jelaskan vibe dan pesan di balik sesi pemotretan baju..."
-            class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 leading-relaxed font-sans"
+            placeholder="Jelaskan vibe dan pesan di balik pemotretan pakaian..."
+            class="w-full px-3.5 py-2 bg-white border-2 border-brand-950 text-brand-950 shadow-[2px_2px_0px_#153227] leading-relaxed font-sans"
           ></textarea>
         </div>
 
         <!-- Cover Image Uploader -->
-        <div class="space-y-3 border-t border-brand-200 pt-5">
-          <label class="block font-mono text-brand-900 uppercase font-semibold">Foto Cover Utama (Hero Banner Lookbook)</label>
+        <div class="space-y-3 border-t-2 border-brand-950/20 pt-4 font-mono">
+          <label class="block uppercase font-bold text-brand-950">Foto Cover Utama (Hero Banner Lookbook)</label>
           
           <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <img
               v-if="lookbookForm.cover_image"
               :src="lookbookForm.cover_image"
               alt="Cover Preview"
-              class="w-32 h-20 object-cover rounded border border-brand-300 shadow-sm bg-brand-100"
+              class="w-36 h-22 object-cover border-2 border-brand-950 shadow-[2px_2px_0px_#153227] bg-brand-100 flex-shrink-0"
             />
             <div class="space-y-2">
-              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-brand-50 border border-brand-300 rounded text-brand-900 font-mono text-xs shadow-sm">
-                <Upload class="w-4 h-4 text-brand-600" />
+              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-brand-100 border-2 border-brand-950 text-brand-950 font-mono text-xs font-bold uppercase shadow-[2px_2px_0px_#153227] transition-all">
+                <Upload class="w-4 h-4 text-brand-950" />
                 <span>{{ isUploadingLookbookCover ? 'Mengunggah Cover...' : 'Ganti Foto Cover' }}</span>
                 <input
                   type="file"
@@ -1541,14 +1761,14 @@ async function handleLogout() {
         </div>
 
         <!-- Gallery Uploader -->
-        <div class="space-y-3 border-t border-brand-200 pt-5">
+        <div class="space-y-3 border-t-2 border-brand-950/20 pt-5">
           <div class="flex items-center justify-between">
             <div>
-              <label class="block font-mono text-brand-900 uppercase font-semibold">Galeri Foto Editorial (Tampil di Home & Lookbook)</label>
-              <p class="text-[11px] text-brand-500 font-mono">Foto model baju tampak depan, samping, dan detail.</p>
+              <label class="block font-mono text-brand-950 uppercase font-bold text-xs">Galeri Foto Editorial (Tampil di Home & Lookbook)</label>
+              <p class="text-[11px] text-brand-500 font-mono">Foto model pakaian tampak depan, samping, dan detail.</p>
             </div>
             
-            <label class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-1.5 bg-brand-100 hover:bg-brand-200 border border-brand-300 rounded text-brand-800 font-mono text-xs">
+            <label class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-1.5 bg-brand-950 hover:bg-brand-900 border-2 border-brand-950 text-scripture-gold font-mono text-xs font-bold uppercase shadow-[2px_2px_0px_#153227] transition-all">
               <Plus class="w-3.5 h-3.5" />
               <span>{{ isUploadingLookbookGallery ? 'Mengunggah...' : 'Tambah Foto' }}</span>
               <input
@@ -1566,51 +1786,51 @@ async function handleLogout() {
             <div
               v-for="(item, idx) in lookbookForm.gallery"
               :key="idx"
-              class="bg-brand-50/70 border border-brand-300 rounded-lg overflow-hidden flex flex-col justify-between shadow-sm"
+              class="bg-white border-2 border-brand-950 overflow-hidden flex flex-col justify-between shadow-[2px_2px_0px_#153227]"
             >
               <!-- Media Box -->
-              <div class="relative aspect-[4/3] bg-brand-100 overflow-hidden group">
+              <div class="relative aspect-[4/3] bg-brand-100 overflow-hidden group border-b-2 border-brand-950">
                 <img :src="typeof item === 'string' ? item : item.url" class="w-full h-full object-cover" />
                 <button
                   type="button"
                   @click="removeLookbookGalleryImage(idx)"
-                  class="absolute top-2 right-2 p-1.5 bg-rose-600/90 hover:bg-rose-700 text-white rounded-full shadow transition-colors"
+                  class="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white border border-brand-950 shadow transition-colors"
                   title="Hapus Foto Ini"
                 >
                   <Trash2 class="w-3.5 h-3.5" />
                 </button>
-                <span class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/70 text-white text-[10px] font-mono rounded">
+                <span class="absolute bottom-2 left-2 px-2 py-0.5 bg-brand-950 text-scripture-gold text-[10px] font-mono font-bold uppercase border border-brand-950">
                   Foto #{{ idx + 1 }}
                 </span>
               </div>
 
               <!-- Optional Caption Box -->
-              <div class="p-3 space-y-1.5 bg-white border-t border-brand-200">
-                <div class="flex items-center justify-between">
-                  <label class="text-[10px] font-mono text-brand-700 uppercase font-semibold">Caption Foto (Opsional)</label>
-                  <span class="text-[9px] font-mono text-brand-400">Kosongkan jika tanpa caption</span>
+              <div class="p-3 space-y-1.5 bg-white">
+                <div class="flex items-center justify-between font-mono">
+                  <label class="text-[10px] text-brand-950 uppercase font-bold">Caption Foto (Opsional)</label>
+                  <span class="text-[9px] text-brand-400">Bisa dikosongkan</span>
                 </div>
                 <input
                   v-if="typeof item === 'object'"
                   v-model="item.caption"
                   type="text"
                   placeholder="Misal: Heavy Boxy Cut / Tampak Belakang..."
-                  class="w-full px-2.5 py-1.5 bg-brand-50 border border-brand-300 rounded text-brand-950 text-xs font-mono placeholder:text-brand-400"
+                  class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs font-mono placeholder:text-brand-400"
                 />
               </div>
             </div>
           </div>
-          <div v-else class="p-8 border border-dashed border-brand-300 rounded text-center font-mono text-xs text-brand-500">
+          <div v-else class="p-8 border-2 border-dashed border-brand-950/40 bg-white text-center font-mono text-xs text-brand-500">
             Belum ada foto galeri lookbook. Klik tombol "+ Tambah Foto" di atas untuk menambahkan.
           </div>
         </div>
 
         <!-- Submit Button -->
-        <div class="pt-4 border-t border-brand-200 flex justify-end">
+        <div class="pt-4 border-t-2 border-brand-950/20 flex justify-end">
           <button
             type="submit"
             :disabled="actionLoading || isUploadingLookbookCover || isUploadingLookbookGallery"
-            class="px-8 py-3 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-bold tracking-widest rounded flex items-center gap-2 shadow-md transition-all"
+            class="px-8 py-3 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono text-xs uppercase font-black tracking-widest border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 transition-all active:translate-x-0.5 active:translate-y-0.5"
           >
             <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />
             <span>Simpan Perubahan Lookbook</span>
@@ -1624,22 +1844,22 @@ async function handleLogout() {
     <div v-else-if="activeTab === 'categories'" class="space-y-6">
       
       <!-- Top Header -->
-      <div class="border-b border-brand-300 pb-4">
-        <h2 class="font-serif font-bold text-xl text-brand-950 uppercase tracking-tight">
+      <div class="border-b-2 border-brand-950 pb-3">
+        <h2 class="font-sans font-black text-xl text-brand-950 uppercase tracking-tight">
           Kategori Pakaian & Koleksi Homepage
         </h2>
-        <p class="text-xs text-brand-600 font-sans mt-0.5">
+        <p class="font-mono text-xs text-brand-600 mt-0.5">
           Kelola master kategori pakaian untuk produk di katalog, dan atur kartu showcase "Kategori Koleksi" yang tampil di Beranda.
         </p>
       </div>
 
       <!-- Sub-Tab Navigation Pills -->
-      <div class="flex items-center gap-3 border-b border-brand-200 pb-3">
+      <div class="flex items-center gap-2 border-b-2 border-brand-950 pb-3 font-mono text-xs overflow-x-auto">
         <button
           type="button"
           @click="activeCategorySubTab = 'showcase'"
-          class="px-4 py-2 text-xs font-mono rounded-md flex items-center gap-2 transition-all font-semibold shadow-xs"
-          :class="activeCategorySubTab === 'showcase' ? 'bg-brand-900 text-white' : 'bg-white text-brand-700 border border-brand-300 hover:bg-brand-100'"
+          class="px-4 py-2 uppercase border-2 border-brand-950 font-bold transition-all flex items-center gap-1.5 shadow-[2px_2px_0px_#153227]"
+          :class="activeCategorySubTab === 'showcase' ? 'bg-brand-950 text-scripture-gold -rotate-0.5' : 'bg-white text-brand-950 hover:bg-brand-100'"
         >
           <LayoutGrid class="w-3.5 h-3.5" />
           <span>✦ Kartu Koleksi Homepage ({{ showcaseCardsList.length }})</span>
@@ -1648,8 +1868,8 @@ async function handleLogout() {
         <button
           type="button"
           @click="activeCategorySubTab = 'master'"
-          class="px-4 py-2 text-xs font-mono rounded-md flex items-center gap-2 transition-all font-semibold shadow-xs"
-          :class="activeCategorySubTab === 'master' ? 'bg-brand-900 text-white' : 'bg-white text-brand-700 border border-brand-300 hover:bg-brand-100'"
+          class="px-4 py-2 uppercase border-2 border-brand-950 font-bold transition-all flex items-center gap-1.5 shadow-[2px_2px_0px_#153227]"
+          :class="activeCategorySubTab === 'master' ? 'bg-brand-950 text-scripture-gold -rotate-0.5' : 'bg-white text-brand-950 hover:bg-brand-100'"
         >
           <FolderTree class="w-3.5 h-3.5" />
           <span>📁 Master Kategori Pakaian ({{ categoriesList.length }})</span>
@@ -1661,20 +1881,20 @@ async function handleLogout() {
       <!-- ========================================================================= -->
       <div v-if="activeCategorySubTab === 'showcase'" class="space-y-6">
         
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-brand-100/50 p-4 rounded-lg border border-brand-300">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 border-2 border-brand-950 shadow-[3px_3px_0px_#153227]">
           <div>
-            <span class="font-mono text-xs font-bold text-brand-900 uppercase block">
+            <span class="font-mono text-xs font-bold text-brand-950 uppercase block">
               Pengaturan Kartu Koleksi di Homepage
             </span>
-            <p class="text-[11px] text-brand-600 mt-0.5">
-              Setiap kartu di bawah ini terhubung ke salah satu <strong>Master Kategori</strong>. Anda bisa mengubah kategori yang dihubungkan, foto editorial, badge (HOT DROP, BESTSELLER), sub-tag, dan tombol aksi.
+            <p class="text-[11px] text-brand-600 mt-0.5 font-sans">
+              Setiap kartu di bawah ini terhubung ke salah satu <strong>Master Kategori</strong> pakaian. Anda bisa mengubah kategori yang dihubungkan, foto editorial, badge (HOT DROP, BESTSELLER), sub-tag, dan tombol aksi.
             </p>
           </div>
 
           <button
             type="button"
             @click="openAddShowcaseModal"
-            class="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-semibold rounded flex items-center gap-2 shadow-sm transition-colors flex-shrink-0"
+            class="px-4 py-2 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono text-xs uppercase font-black border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 transition-all active:translate-x-0.5 active:translate-y-0.5 flex-shrink-0"
           >
             <Plus class="w-4 h-4" />
             <span>Tambah Kartu Koleksi</span>
@@ -1682,84 +1902,84 @@ async function handleLogout() {
         </div>
 
         <!-- Showcase Cards Grid (Preview exact homepage card look!) -->
-        <div v-if="showcaseCardsList.length === 0" class="p-12 text-center bg-white border border-brand-300 rounded font-mono text-xs text-brand-500">
+        <div v-if="showcaseCardsList.length === 0" class="p-12 text-center bg-white border-2 border-dashed border-brand-950/40 font-mono text-xs text-brand-500">
           Belum ada kartu koleksi untuk Homepage. Klik "+ Tambah Kartu Koleksi" untuk menambahkan.
         </div>
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div
             v-for="card in showcaseCardsList"
             :key="card.id"
-            class="group relative bg-white border border-brand-300 rounded overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+            class="group relative bg-white border-2 border-brand-950 shadow-[3px_3px_0px_#153227] overflow-hidden flex flex-col justify-between transition-transform duration-200"
           >
             <div>
               <!-- Image Frame -->
-              <div class="relative aspect-[4/5] overflow-hidden bg-brand-100">
+              <div class="relative aspect-[4/5] overflow-hidden bg-brand-100 border-b-2 border-brand-950">
                 <img
                   :src="card.image"
                   :alt="card.title"
                   class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
                 <!-- Top Badge -->
                 <div class="absolute top-3 left-3">
-                  <span class="px-2.5 py-1 text-[10px] font-mono tracking-widest uppercase bg-white/95 text-brand-900 font-semibold rounded shadow-sm">
+                  <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-white text-brand-950 font-bold border border-brand-950">
                     {{ card.badge || 'COLLECTION' }}
                   </span>
                 </div>
 
                 <!-- Sort Order Badge -->
                 <div class="absolute top-3 right-3">
-                  <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-black/60 text-white rounded">
+                  <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-brand-950 text-scripture-gold font-bold border border-brand-950">
                     #{{ card.sort_order }}
                   </span>
                 </div>
 
                 <!-- Bottom Floating Overlay Title -->
                 <div class="absolute bottom-4 left-4 right-4 text-white">
-                  <span class="font-mono text-[10px] uppercase tracking-widest text-scripture-sand block mb-0.5">
+                  <span class="font-mono text-[10px] uppercase tracking-widest text-scripture-gold block mb-0.5 font-bold">
                     {{ card.tag || 'SHOWCASE' }}
                   </span>
-                  <h3 class="font-serif font-bold text-xl uppercase leading-tight tracking-wide drop-shadow-sm">
+                  <h3 class="font-sans font-black text-xl uppercase leading-tight tracking-wide drop-shadow-sm">
                     {{ card.title }}
                   </h3>
                 </div>
               </div>
 
               <!-- Linked Category Banner -->
-              <div class="px-3.5 py-2 bg-emerald-50 border-b border-emerald-200/70 text-[11px] font-mono text-emerald-900 flex items-center gap-1.5">
-                <LinkIcon class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+              <div class="px-3.5 py-2 bg-brand-100 border-b-2 border-brand-950 text-[11px] font-mono text-brand-950 flex items-center gap-1.5">
+                <LinkIcon class="w-3.5 h-3.5 text-brand-700 flex-shrink-0" />
                 <span class="truncate">
                   Kategori: <strong>{{ card.category_name }}</strong> (<code>/{{ card.category_slug }}</code>)
                 </span>
               </div>
 
               <!-- Meta & Description -->
-              <div class="p-4 space-y-3 bg-white">
-                <p class="text-xs text-brand-600 leading-relaxed font-sans line-clamp-2">
+              <div class="p-4 space-y-3 bg-white font-mono text-xs">
+                <p class="text-brand-700 leading-relaxed font-sans line-clamp-2">
                   {{ card.description || 'Tidak ada deskripsi' }}
                 </p>
 
-                <div class="flex items-center justify-between text-[11px] font-mono text-brand-500 border-t border-brand-100 pt-2">
-                  <span>Tombol Homepage:</span>
-                  <span class="text-scripture-bronze font-semibold">"Jelajahi {{ card.button_text }}"</span>
+                <div class="flex items-center justify-between text-[11px] text-brand-600 border-t border-brand-200 pt-2 font-mono">
+                  <span>Tombol Home:</span>
+                  <span class="text-brand-950 font-bold">"Jelajahi {{ card.button_text }}"</span>
                 </div>
               </div>
             </div>
 
             <!-- Card Action Buttons -->
-            <div class="p-3 bg-brand-50/80 border-t border-brand-200 flex items-center justify-end gap-2">
+            <div class="p-3 bg-white border-t-2 border-brand-950 flex items-center justify-end gap-2 font-mono">
               <button
                 @click="openEditShowcaseModal(card)"
-                class="px-3 py-1.5 bg-brand-900 hover:bg-brand-800 text-white text-xs font-mono rounded flex items-center gap-1 shadow-xs transition-colors"
+                class="px-3 py-1.5 bg-brand-950 hover:bg-brand-900 text-scripture-gold text-xs uppercase font-bold border-2 border-brand-950 shadow-[1px_1px_0px_#153227] flex items-center gap-1 transition-all active:translate-x-0.5 active:translate-y-0.5"
                 title="Edit Tampilan & Kategori Terkait"
               >
                 <Edit class="w-3.5 h-3.5" />
-                <span>Edit Kartu</span>
+                <span>Edit</span>
               </button>
               <button
                 @click="handleDeleteShowcaseCard(card)"
-                class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded transition-colors"
+                class="p-1.5 bg-rose-100 hover:bg-rose-200 text-rose-900 border-2 border-brand-950 shadow-[1px_1px_0px_#153227] transition-all active:translate-x-0.5 active:translate-y-0.5"
                 title="Hapus Kartu Koleksi"
               >
                 <Trash2 class="w-3.5 h-3.5" />
@@ -1776,12 +1996,12 @@ async function handleLogout() {
       <!-- ========================================================================= -->
       <div v-else-if="activeCategorySubTab === 'master'" class="space-y-4">
         
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-brand-100/50 p-4 rounded-lg border border-brand-300">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 border-2 border-brand-950 shadow-[3px_3px_0px_#153227]">
           <div>
-            <span class="font-mono text-xs font-bold text-brand-900 uppercase block">
+            <span class="font-mono text-xs font-bold text-brand-950 uppercase block">
               Daftar Master Kategori Pakaian
             </span>
-            <p class="text-[11px] text-brand-600 mt-0.5">
+            <p class="text-[11px] text-brand-600 mt-0.5 font-sans">
               Daftar kategori utama yang digunakan saat membuat/mengedit pakaian di Katalog. Kategori yang Anda tambahkan di sini bisa langsung dipilih pada produk dan kartu koleksi Homepage.
             </p>
           </div>
@@ -1789,7 +2009,7 @@ async function handleLogout() {
           <button
             type="button"
             @click="openAddMasterCategoryModal"
-            class="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-semibold rounded flex items-center gap-2 shadow-sm transition-colors flex-shrink-0"
+            class="px-4 py-2 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono text-xs uppercase font-black border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 transition-all active:translate-x-0.5 active:translate-y-0.5 flex-shrink-0"
           >
             <Plus class="w-4 h-4" />
             <span>Tambah Master Kategori</span>
@@ -1797,16 +2017,16 @@ async function handleLogout() {
         </div>
 
         <!-- Master Categories Table -->
-        <div class="bg-white border border-brand-300 rounded shadow-sm overflow-hidden">
+        <div class="bg-white border-2 border-brand-950 shadow-[4px_4px_0px_#153227] overflow-hidden">
           <table class="w-full text-left font-sans text-xs">
-            <thead class="bg-brand-100/70 text-brand-700 font-mono uppercase border-b border-brand-300">
+            <thead class="bg-brand-950 text-scripture-gold font-mono uppercase border-b-2 border-brand-950 text-[11px]">
               <tr>
-                <th class="p-3.5">Nama Kategori</th>
-                <th class="p-3.5">Slug URL</th>
-                <th class="p-3.5">Deskripsi</th>
-                <th class="p-3.5">Produk Aktif</th>
-                <th class="p-3.5">Status di Homepage</th>
-                <th class="p-3.5 text-right">Aksi</th>
+                <th class="p-3">Nama Kategori</th>
+                <th class="p-3">Slug URL</th>
+                <th class="p-3">Deskripsi</th>
+                <th class="p-3">Produk Aktif</th>
+                <th class="p-3">Status di Homepage</th>
+                <th class="p-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-brand-200 text-brand-800">
@@ -1821,34 +2041,34 @@ async function handleLogout() {
                 class="hover:bg-brand-50 transition-colors"
               >
                 <!-- Name -->
-                <td class="p-3.5 font-bold text-brand-950 font-serif text-sm">
+                <td class="p-3 font-bold text-brand-950 font-sans text-sm">
                   {{ cat.name }}
                 </td>
 
                 <!-- Slug -->
-                <td class="p-3.5 font-mono text-brand-700">
-                  <span class="px-2 py-0.5 bg-brand-100 rounded text-[11px]">/{{ cat.slug }}</span>
+                <td class="p-3 font-mono text-brand-700">
+                  <span class="px-2 py-0.5 bg-brand-100 border border-brand-950 text-[11px] font-bold">/{{ cat.slug }}</span>
                 </td>
 
                 <!-- Description -->
-                <td class="p-3.5 text-brand-600 max-w-xs truncate">
+                <td class="p-3 text-brand-600 max-w-xs truncate">
                   {{ cat.description || '-' }}
                 </td>
 
                 <!-- Product count -->
-                <td class="p-3.5 font-mono">
-                  <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-brand-100 text-brand-800">
+                <td class="p-3 font-mono">
+                  <span class="px-2 py-0.5 text-[11px] font-bold bg-white border border-brand-950 text-brand-950">
                     {{ getProductCountForCategory(cat.id) }} Artikel
                   </span>
                 </td>
 
                 <!-- Homepage status -->
-                <td class="p-3.5 font-mono text-[11px]">
+                <td class="p-3 font-mono text-[11px]">
                   <span
                     v-if="isCategoryUsedInShowcase(cat)"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded font-semibold"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-200 text-emerald-950 border border-brand-950 font-bold"
                   >
-                    <Check class="w-3 h-3 text-emerald-600" />
+                    <Check class="w-3 h-3 text-emerald-900" />
                     <span>Aktif di Homepage</span>
                   </span>
                   <span v-else class="text-brand-400">
@@ -1857,10 +2077,10 @@ async function handleLogout() {
                 </td>
 
                 <!-- Delete Action -->
-                <td class="p-3.5 text-right">
+                <td class="p-3 text-right font-mono">
                   <button
                     @click="handleDeleteMasterCategory(cat)"
-                    class="p-1.5 text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded shadow-sm transition-colors"
+                    class="p-1.5 text-rose-900 bg-rose-100 hover:bg-rose-200 border-2 border-brand-950 shadow-[1px_1px_0px_#153227] transition-all active:translate-x-0.5 active:translate-y-0.5"
                     title="Hapus Kategori"
                   >
                     <Trash2 class="w-3.5 h-3.5" />
@@ -1877,12 +2097,12 @@ async function handleLogout() {
 
     <!-- TAB 5: BUNDLE PACKAGES MANAGEMENT -->
     <div v-else-if="activeTab === 'bundles'" class="space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-brand-300 pb-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-brand-950 pb-3">
         <div>
-          <h2 class="font-serif font-bold text-xl text-brand-950 uppercase tracking-tight">
+          <h2 class="font-sans font-black text-xl text-brand-950 uppercase tracking-tight">
             Kelola Paket Bundling Eksklusif
           </h2>
-          <p class="text-xs text-brand-600 font-sans mt-0.5">
+          <p class="font-mono text-xs text-brand-600 mt-0.5">
             Atur paket bundle spesial yang tampil di Beranda, termasuk foto, harga promo, teks hemat, dan item di dalam paket.
           </p>
         </div>
@@ -1890,7 +2110,7 @@ async function handleLogout() {
         <button
           type="button"
           @click="openAddBundleModal"
-          class="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-semibold rounded flex items-center gap-2 shadow-sm transition-colors flex-shrink-0"
+          class="px-4 py-2 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono text-xs uppercase font-black border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 transition-all active:translate-x-0.5 active:translate-y-0.5 flex-shrink-0"
         >
           <Plus class="w-4 h-4" />
           <span>Tambah Paket Bundle Baru</span>
@@ -1898,18 +2118,18 @@ async function handleLogout() {
       </div>
 
       <!-- Bundles Admin Cards Grid -->
-      <div v-if="bundlesList.length === 0" class="p-12 text-center bg-white border border-brand-300 rounded font-mono text-xs text-brand-500">
+      <div v-if="bundlesList.length === 0" class="p-12 text-center bg-white border-2 border-dashed border-brand-950/40 font-mono text-xs text-brand-500">
         Belum ada paket bundling. Klik "+ Tambah Paket Bundle Baru" untuk membuat paket pertama.
       </div>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
           v-for="b in bundlesList"
           :key="b.id"
-          class="bg-white border border-brand-300 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+          class="bg-white border-2 border-brand-950 shadow-[4px_4px_0px_#153227] overflow-hidden flex flex-col justify-between transition-transform duration-200"
         >
           <div>
             <!-- Media Preview -->
-            <div class="relative aspect-[4/3] bg-brand-100 overflow-hidden">
+            <div class="relative aspect-[4/3] bg-brand-100 overflow-hidden border-b-2 border-brand-950">
               <img
                 v-if="b.image"
                 :src="b.image"
@@ -1920,12 +2140,12 @@ async function handleLogout() {
                 Tidak ada foto
               </div>
               <div class="absolute top-2 left-2">
-                <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-brand-900/90 text-white font-semibold rounded">
+                <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-brand-950 text-scripture-gold font-bold border border-brand-950">
                   {{ b.badge }}
                 </span>
               </div>
               <div class="absolute top-2 right-2">
-                <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-amber-400 text-brand-950 font-bold rounded">
+                <span class="px-2 py-0.5 text-[10px] font-mono tracking-widest uppercase bg-scripture-gold text-brand-950 font-black border border-brand-950">
                   {{ b.savingsText }}
                 </span>
               </div>
@@ -1934,40 +2154,40 @@ async function handleLogout() {
             <!-- Content Details -->
             <div class="p-4 space-y-3">
               <div>
-                <h3 class="font-serif font-bold text-base text-brand-950 uppercase leading-snug">
+                <h3 class="font-sans font-black text-base text-brand-950 uppercase leading-snug">
                   {{ b.title }}
                 </h3>
-                <p class="text-xs font-mono text-brand-500 line-clamp-2 mt-0.5">
+                <p class="text-xs font-mono text-brand-600 line-clamp-2 mt-0.5">
                   {{ b.subtitle }}
                 </p>
               </div>
 
               <!-- Price Box -->
-              <div class="p-2.5 bg-brand-50 border border-brand-200 rounded flex items-baseline justify-between text-xs">
+              <div class="p-2.5 bg-brand-50 border-2 border-brand-950 flex items-baseline justify-between text-xs">
                 <div>
                   <span class="font-mono text-brand-400 line-through block text-[10px]">
                     {{ catalogStore.formatPrice(b.originalPrice) }}
                   </span>
-                  <span class="font-mono text-sm font-bold text-brand-950">
+                  <span class="font-mono text-sm font-black text-brand-950">
                     {{ catalogStore.formatPrice(b.bundlePrice) }}
                   </span>
                 </div>
-                <span class="text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <span class="text-[10px] font-mono font-bold text-emerald-950 bg-emerald-200 px-2 py-0.5 border border-brand-950">
                   {{ b.savingsText }}
                 </span>
               </div>
 
               <!-- Item count & snippet -->
               <div class="space-y-1.5 pt-1">
-                <span class="text-[10px] font-mono uppercase tracking-wider text-brand-600 font-bold block">
+                <span class="text-[10px] font-mono uppercase tracking-wider text-brand-950 font-bold block">
                   Isi Item Paket ({{ b.items?.length || 0 }} item):
                 </span>
-                <ul class="space-y-1 text-xs text-brand-700">
+                <ul class="space-y-1 text-xs text-brand-800 font-mono">
                   <li v-for="(it, iIdx) in (b.items || []).slice(0, 3)" :key="iIdx" class="flex items-center gap-1.5 truncate">
-                    <span class="w-1.5 h-1.5 rounded-full bg-scripture-gold flex-shrink-0"></span>
-                    <span class="truncate">{{ it.name }}</span>
+                    <span class="w-1.5 h-1.5 bg-brand-950 flex-shrink-0"></span>
+                    <span class="truncate font-semibold">{{ it.name }}</span>
                   </li>
-                  <li v-if="(b.items?.length || 0) > 3" class="text-[10px] font-mono text-brand-400">
+                  <li v-if="(b.items?.length || 0) > 3" class="text-[10px] font-mono text-brand-500">
                     +{{ b.items.length - 3 }} item lainnya
                   </li>
                 </ul>
@@ -1976,13 +2196,13 @@ async function handleLogout() {
           </div>
 
           <!-- Bottom Actions -->
-          <div class="p-4 pt-0 border-t border-brand-100 flex items-center justify-between gap-2 mt-3">
-            <span class="text-[10px] font-mono text-brand-500">Urutan: #{{ b.sort_order }}</span>
+          <div class="p-3 bg-white border-t-2 border-brand-950 flex items-center justify-between gap-2 font-mono">
+            <span class="text-[10px] font-mono text-brand-600 font-bold">Urutan: #{{ b.sort_order }}</span>
             <div class="flex items-center gap-2">
               <button
                 type="button"
                 @click="openEditBundleModal(b)"
-                class="px-3 py-1.5 bg-white hover:bg-brand-100 text-brand-800 border border-brand-300 rounded font-mono text-xs flex items-center gap-1.5 transition-colors"
+                class="px-3 py-1.5 bg-brand-950 hover:bg-brand-900 text-scripture-gold border-2 border-brand-950 shadow-[1px_1px_0px_#153227] font-mono text-xs uppercase font-bold flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5"
               >
                 <Edit class="w-3.5 h-3.5" />
                 <span>Edit</span>
@@ -1990,7 +2210,7 @@ async function handleLogout() {
               <button
                 type="button"
                 @click="handleDeleteBundle(b)"
-                class="p-1.5 text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded transition-colors"
+                class="p-1.5 text-rose-900 bg-rose-100 hover:bg-rose-200 border-2 border-brand-950 shadow-[1px_1px_0px_#153227] transition-all active:translate-x-0.5 active:translate-y-0.5"
                 title="Hapus Paket"
               >
                 <Trash2 class="w-3.5 h-3.5" />
@@ -2004,22 +2224,22 @@ async function handleLogout() {
     <!-- MODAL FORM PRODUK (TAMBAH / EDIT) -->
     <div
       v-if="isModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-brand-950/70 backdrop-blur-sm"
       @click.self="isModalOpen = false"
     >
-      <div class="bg-white border border-brand-300 rounded-xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="bg-white border-2 border-brand-950 shadow-[8px_8px_0px_#153227] max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden">
         
         <!-- Modal Header (Always Pinned at Top) -->
-        <div class="px-6 py-4 border-b border-brand-200 flex items-center justify-between flex-shrink-0 bg-white">
+        <div class="px-6 py-4 border-b-2 border-brand-950 flex items-center justify-between flex-shrink-0 bg-brand-950 text-scripture-gold">
           <div class="flex items-center gap-2.5">
             <span class="text-scripture-gold font-serif">✦</span>
-            <h3 class="font-serif font-bold text-lg sm:text-xl text-brand-950 uppercase tracking-tight">
+            <h3 class="font-sans font-black text-lg sm:text-xl text-scripture-gold uppercase tracking-tight">
               {{ isEditing ? 'Edit Artikel Pakaian' : 'Tambah Artikel Baru' }}
             </h3>
           </div>
           <button
             @click="isModalOpen = false"
-            class="p-1.5 text-brand-400 hover:text-brand-900 hover:bg-brand-100 rounded-full transition-colors"
+            class="p-1 text-scripture-gold hover:text-white hover:bg-white/10 transition-colors"
             title="Tutup Modal"
           >
             <X class="w-5 h-5" />
@@ -2031,37 +2251,37 @@ async function handleLogout() {
           
           <!-- Basic Info -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase">Judul Pakaian *</label>
+            <div class="space-y-1 font-mono">
+              <label class="block uppercase font-bold text-brand-950">Judul Pakaian *</label>
               <input
                 v-model="form.title"
                 @input="generateSlug"
                 type="text"
                 required
                 placeholder="Heavyweight Boxy Tee - 'Grace & Chaos'"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-bold focus:outline-none"
               />
             </div>
 
-            <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase">Slug URL (Unik) *</label>
+            <div class="space-y-1 font-mono">
+              <label class="block uppercase font-bold text-brand-950">Slug URL (Unik) *</label>
               <input
                 v-model="form.slug"
                 type="text"
                 required
                 placeholder="heavyweight-boxy-tee"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono focus:outline-none"
               />
             </div>
 
-            <div class="space-y-1">
+            <div class="space-y-1 font-mono">
               <div class="flex items-center justify-between">
-                <label class="block font-mono text-brand-700 uppercase">Kategori Pakaian</label>
-                <span class="text-[10px] font-mono text-brand-500">Master Kategori</span>
+                <label class="block uppercase font-bold text-brand-950">Kategori Pakaian</label>
+                <span class="text-[10px] text-brand-500">Master Kategori</span>
               </div>
               <select
                 v-model="form.category_id"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono cursor-pointer"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono cursor-pointer focus:outline-none"
               >
                 <option value="">-- Tanpa Kategori --</option>
                 <option
@@ -2074,98 +2294,98 @@ async function handleLogout() {
               </select>
             </div>
 
-            <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase">Harga (IDR) *</label>
+            <div class="space-y-1 font-mono">
+              <label class="block uppercase font-bold text-brand-950">Harga (IDR) *</label>
               <input
                 v-model="form.price"
                 type="number"
                 required
                 min="0"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono font-bold focus:outline-none"
               />
             </div>
           </div>
 
           <!-- Description -->
-          <div class="space-y-1">
-            <label class="block font-mono text-brand-700 uppercase">Deskripsi Pakaian</label>
+          <div class="space-y-1 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Deskripsi Pakaian</label>
             <textarea
               v-model="form.description"
               rows="2"
               placeholder="Jelaskan pesan firman, bahan, dan vibe baju..."
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950"
+              class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-sans leading-relaxed focus:outline-none"
             ></textarea>
           </div>
 
           <!-- Specifications (Details) -->
-          <div class="p-4 bg-brand-100/60 border border-brand-300 rounded space-y-3">
-            <span class="font-mono text-xs uppercase text-brand-900 font-semibold block">
+          <div class="p-4 bg-white border-2 border-brand-950 shadow-[2px_2px_0px_#153227] space-y-3 font-mono">
+            <span class="text-xs uppercase text-brand-950 font-black block">
               Integritas Kain & Spesifikasi
             </span>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="text-[10px] font-mono text-brand-600 uppercase">Material Kain</label>
+                <label class="text-[10px] text-brand-700 uppercase font-bold block mb-0.5">Material Kain</label>
                 <input
                   v-model="form.details.material"
                   placeholder="100% Heavyweight Cotton 16s (235 GSM)"
-                  class="w-full px-2.5 py-1.5 bg-white border border-brand-300 rounded text-brand-900"
+                  class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 focus:outline-none"
                 />
               </div>
               <div>
-                <label class="text-[10px] font-mono text-brand-600 uppercase">Cutting / Fit</label>
+                <label class="text-[10px] text-brand-700 uppercase font-bold block mb-0.5">Cutting / Fit</label>
                 <input
                   v-model="form.details.fit"
                   placeholder="Boxy Cut Drop Shoulder"
-                  class="w-full px-2.5 py-1.5 bg-white border border-brand-300 rounded text-brand-900"
+                  class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 focus:outline-none"
                 />
               </div>
               <div>
-                <label class="text-[10px] font-mono text-brand-600 uppercase">Sablon / Grafis</label>
+                <label class="text-[10px] text-brand-700 uppercase font-bold block mb-0.5">Sablon / Grafis</label>
                 <input
                   v-model="form.details.print"
                   placeholder="High-Density Plastisol Discharge"
-                  class="w-full px-2.5 py-1.5 bg-white border border-brand-300 rounded text-brand-900"
+                  class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 focus:outline-none"
                 />
               </div>
               <div>
-                <label class="text-[10px] font-mono text-brand-600 uppercase">Asal Produksi</label>
+                <label class="text-[10px] text-brand-700 uppercase font-bold block mb-0.5">Asal Produksi</label>
                 <input
                   v-model="form.details.origin"
                   placeholder="Bandung, ID"
-                  class="w-full px-2.5 py-1.5 bg-white border border-brand-300 rounded text-brand-900"
+                  class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 focus:outline-none"
                 />
               </div>
             </div>
           </div>
 
           <!-- Variants & Stock Builder -->
-          <div class="p-4 bg-brand-100/60 border border-brand-300 rounded space-y-3">
-            <span class="font-mono text-xs uppercase text-brand-900 font-semibold block">
+          <div class="p-4 bg-white border-2 border-brand-950 shadow-[2px_2px_0px_#153227] space-y-3 font-mono">
+            <span class="text-xs uppercase text-brand-950 font-black block">
               Stok per Ukuran (Varian)
             </span>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div v-for="(v, idx) in form.variants" :key="idx" class="space-y-1">
-                <label class="block font-mono text-xs text-brand-800 font-bold uppercase">Size {{ v.size }}</label>
+                <label class="block text-xs text-brand-950 font-bold uppercase">Size {{ v.size }}</label>
                 <input
                   v-model.number="v.stock"
                   type="number"
                   min="0"
                   placeholder="Stok"
-                  class="w-full px-2.5 py-1.5 bg-white border border-brand-300 rounded text-brand-950 font-mono"
+                  class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 font-mono font-bold focus:outline-none"
                 />
               </div>
             </div>
           </div>
 
           <!-- Image Uploader Section -->
-          <div class="space-y-2">
-            <span class="block font-mono text-brand-700 uppercase">Foto Pakaian (Supabase Cloud Storage)</span>
+          <div class="space-y-2 font-mono">
+            <span class="block uppercase font-bold text-brand-950">Foto Pakaian (Supabase Cloud Storage)</span>
             
             <!-- Upload trigger -->
             <div class="flex items-center gap-3">
-              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-brand-50 border border-brand-300 rounded text-brand-900 font-mono text-xs shadow-sm">
-                <Upload class="w-4 h-4 text-brand-600" />
-                <span>{{ isUploadingImage ? 'Mengunggah ke Cloud...' : 'Unggah Foto dari Komputer / HP' }}</span>
+              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-brand-950 hover:bg-brand-900 border-2 border-brand-950 text-scripture-gold font-mono text-xs font-bold uppercase shadow-[2px_2px_0px_#153227] transition-all">
+                <Upload class="w-4 h-4 text-scripture-gold" />
+                <span>{{ isUploadingImage ? 'Mengunggah ke Cloud...' : 'Unggah Foto Pakaian' }}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -2182,13 +2402,13 @@ async function handleLogout() {
               <div
                 v-for="(img, idx) in form.images"
                 :key="idx"
-                class="relative w-20 h-24 bg-brand-100 border border-brand-300 rounded overflow-hidden flex-shrink-0 group shadow-sm"
+                class="relative w-20 h-24 bg-brand-100 border-2 border-brand-950 shadow-[2px_2px_0px_#153227] overflow-hidden flex-shrink-0 group"
               >
                 <img :src="img" class="w-full h-full object-cover" />
                 <button
                   type="button"
                   @click="removeImage(idx)"
-                  class="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] shadow"
+                  class="absolute top-1 right-1 p-1 bg-rose-600 hover:bg-rose-700 text-white border border-brand-950 text-[10px] shadow"
                 >
                   <X class="w-3 h-3" />
                 </button>
@@ -2197,12 +2417,12 @@ async function handleLogout() {
           </div>
 
           <!-- Status & Featured -->
-          <div class="flex items-center gap-6 pt-2 border-t border-brand-200">
+          <div class="flex items-center gap-6 pt-2 border-t-2 border-brand-950/20 font-mono">
             <div class="flex items-center gap-2">
-              <label class="font-mono text-brand-700 uppercase">Status:</label>
+              <label class="uppercase font-bold text-brand-950">Status:</label>
               <select
                 v-model="form.status"
-                class="px-3 py-1.5 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+                class="px-3 py-1.5 bg-white border-2 border-brand-950 text-brand-950 font-mono font-bold focus:outline-none"
               >
                 <option value="active">Active (Tampil di Katalog)</option>
                 <option value="sold_out">Sold Out</option>
@@ -2211,8 +2431,8 @@ async function handleLogout() {
               </select>
             </div>
 
-            <label class="flex items-center gap-2 cursor-pointer font-mono text-brand-800 select-none">
-              <input type="checkbox" v-model="form.is_featured" class="accent-brand-900" />
+            <label class="flex items-center gap-2 cursor-pointer text-brand-950 select-none font-bold">
+              <input type="checkbox" v-model="form.is_featured" class="w-4 h-4 accent-brand-950" />
               <span>Jadikan Rilisan Pilihan (Featured)</span>
             </label>
           </div>
@@ -2220,11 +2440,11 @@ async function handleLogout() {
         </form>
 
         <!-- Modal Footer (Always Pinned at Bottom) -->
-        <div class="px-6 py-4 border-t border-brand-200 bg-brand-50/80 flex items-center justify-end gap-3 flex-shrink-0">
+        <div class="px-6 py-4 border-t-2 border-brand-950 bg-brand-50 flex items-center justify-end gap-3 flex-shrink-0">
           <button
             type="button"
             @click="isModalOpen = false"
-            class="px-5 py-2.5 font-mono text-xs text-brand-600 hover:text-brand-900 font-medium"
+            class="px-5 py-2.5 font-mono text-xs uppercase font-bold text-brand-950 hover:bg-brand-100 border-2 border-brand-950 bg-white shadow-[1px_1px_0px_#153227] transition-all"
           >
             Batal
           </button>
@@ -2232,7 +2452,7 @@ async function handleLogout() {
             type="submit"
             form="productForm"
             :disabled="actionLoading || isUploadingImage"
-            class="px-6 py-2.5 font-mono text-xs uppercase bg-brand-900 text-white hover:bg-brand-800 font-bold rounded flex items-center gap-2 shadow"
+            class="px-6 py-2.5 font-mono text-xs uppercase bg-brand-950 text-scripture-gold hover:bg-brand-900 font-black border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 active:translate-x-0.5 active:translate-y-0.5 transition-all"
           >
             <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />
             <span>{{ isEditing ? 'Simpan Perubahan' : 'Buat Artikel Baru' }}</span>
@@ -2245,27 +2465,27 @@ async function handleLogout() {
     <!-- MODAL 1: ATUR KARTU KOLEKSI HOMEPAGE -->
     <div
       v-if="isShowcaseModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-brand-950/70 backdrop-blur-sm"
       @click.self="isShowcaseModalOpen = false"
     >
-      <div class="bg-white border border-brand-300 rounded-xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="bg-white border-2 border-brand-950 shadow-[8px_8px_0px_#153227] max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden">
         
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-brand-200 flex items-center justify-between flex-shrink-0 bg-white">
+        <div class="px-6 py-4 border-b-2 border-brand-950 flex items-center justify-between flex-shrink-0 bg-brand-950 text-scripture-gold">
           <div class="flex items-center gap-2.5">
-            <LayoutGrid class="w-5 h-5 text-brand-800" />
+            <LayoutGrid class="w-5 h-5 text-scripture-gold" />
             <div>
-              <h2 class="font-serif font-bold text-lg text-brand-950 uppercase">
+              <h2 class="font-sans font-black text-lg text-scripture-gold uppercase">
                 {{ isShowcaseEditing ? 'Edit Kartu Koleksi Homepage' : 'Tambah Kartu Koleksi Homepage' }}
               </h2>
-              <p class="text-xs text-brand-500 font-mono">
+              <p class="text-xs text-brand-300 font-mono">
                 Hubungkan kartu showcase ini ke salah satu Master Kategori yang ada
               </p>
             </div>
           </div>
           <button
             @click="isShowcaseModalOpen = false"
-            class="p-1.5 text-brand-400 hover:text-brand-900 rounded"
+            class="p-1 text-scripture-gold hover:text-white hover:bg-white/10 transition-colors"
           >
             <X class="w-5 h-5" />
           </button>
@@ -2278,16 +2498,16 @@ async function handleLogout() {
           class="p-6 space-y-4 overflow-y-auto font-sans text-xs flex-grow"
         >
           <!-- 1. Hubungkan ke Master Kategori -->
-          <div class="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-lg space-y-1.5">
-            <label class="block font-mono text-emerald-950 uppercase font-bold flex items-center gap-1.5">
-              <LinkIcon class="w-3.5 h-3.5 text-emerald-600" />
+          <div class="p-3.5 bg-brand-100/70 border-2 border-brand-950 space-y-1.5 font-mono">
+            <label class="block text-brand-950 uppercase font-bold flex items-center gap-1.5">
+              <LinkIcon class="w-3.5 h-3.5 text-brand-700" />
               <span>Hubungkan ke Kategori Pakaian (Wajib) *</span>
             </label>
             <select
               v-model="showcaseForm.category_id"
               @change="onShowcaseCategoryChange"
               required
-              class="w-full px-3 py-2 bg-white border border-emerald-300 rounded text-brand-950 font-mono font-medium cursor-pointer"
+              class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono font-bold cursor-pointer focus:outline-none"
             >
               <option value="" disabled>-- Pilih Kategori yang Sudah Ada --</option>
               <option
@@ -2298,43 +2518,43 @@ async function handleLogout() {
                 {{ cat.name }} (Slug URL: /{{ cat.slug }})
               </option>
             </select>
-            <p class="text-[11px] text-emerald-800 font-mono">
+            <p class="text-[11px] text-brand-700 font-mono">
               Ketika kartu ini diklik di Beranda, pengunjung akan diarahkan ke katalog dengan filter kategori <code>/{{ showcaseForm.category_slug || 'kategori' }}</code>.
             </p>
           </div>
 
           <!-- Judul Kartu & Sub-Tag -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase">Judul Kartu di Beranda *</label>
+            <div class="space-y-1 font-mono">
+              <label class="block uppercase font-bold text-brand-950">Judul Kartu di Beranda *</label>
               <input
                 v-model="showcaseForm.title"
                 type="text"
                 required
                 placeholder="Misal: Jackets & Outerwear"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-medium"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-bold focus:outline-none"
               />
             </div>
 
-            <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase">Sub-Tag Header</label>
+            <div class="space-y-1 font-mono">
+              <label class="block uppercase font-bold text-brand-950">Sub-Tag Header</label>
               <input
                 v-model="showcaseForm.tag"
                 type="text"
                 placeholder="01 // OUTERWEAR"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono uppercase"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono uppercase focus:outline-none"
               />
             </div>
           </div>
 
           <!-- Badge Showcase -->
-          <div class="space-y-1">
-            <label class="block font-mono text-brand-700 uppercase">Badge Label (Pojok Kiri Atas)</label>
+          <div class="space-y-1 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Badge Label (Pojok Kiri Atas)</label>
             <input
               v-model="showcaseForm.badge"
               type="text"
               placeholder="HOT DROP / BESTSELLER"
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono uppercase"
+              class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono uppercase font-bold focus:outline-none"
             />
             <!-- Preset Badges -->
             <div class="flex flex-wrap gap-1 pt-1">
@@ -2343,7 +2563,7 @@ async function handleLogout() {
                 v-for="b in badgePresets"
                 :key="b"
                 @click="showcaseForm.badge = b"
-                class="text-[10px] font-mono px-2 py-0.5 bg-brand-100 hover:bg-brand-200 text-brand-800 rounded border border-brand-200 transition-colors"
+                class="text-[10px] font-mono px-2 py-0.5 bg-white hover:bg-brand-100 text-brand-950 font-bold border border-brand-950 transition-colors"
               >
                 {{ b }}
               </button>
@@ -2351,49 +2571,49 @@ async function handleLogout() {
           </div>
 
           <!-- Deskripsi Ringkas -->
-          <div class="space-y-1">
-            <label class="block font-mono text-brand-700 uppercase">Deskripsi Bahan & Potongan</label>
+          <div class="space-y-1 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Deskripsi Bahan & Potongan</label>
             <textarea
               v-model="showcaseForm.description"
               rows="2"
               placeholder="Zip hoodies 380 GSM, coaches jacket, dan rajut katun tebal."
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 leading-relaxed font-sans"
+              class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 leading-relaxed font-sans focus:outline-none"
             ></textarea>
           </div>
 
           <!-- Tombol Text & Sort Order -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase">Teks Tombol Aksi</label>
-              <div class="flex items-center gap-1 bg-brand-50 border border-brand-300 rounded px-3 py-2">
+            <div class="space-y-1 font-mono">
+              <label class="block uppercase font-bold text-brand-950">Teks Tombol Aksi</label>
+              <div class="flex items-center gap-1 bg-white border-2 border-brand-950 px-3 py-2">
                 <span class="text-brand-500 font-mono text-xs">Jelajahi</span>
                 <input
                   v-model="showcaseForm.button_text"
                   type="text"
                   placeholder="Outerwear"
-                  class="bg-transparent border-none outline-none text-brand-950 font-medium w-full text-xs"
+                  class="bg-transparent border-none outline-none text-brand-950 font-bold w-full text-xs"
                 />
               </div>
             </div>
 
-            <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase">Urutan Tampil (Posisi Kartu)</label>
+            <div class="space-y-1 font-mono">
+              <label class="block uppercase font-bold text-brand-950">Urutan Tampil (Posisi Kartu)</label>
               <input
                 v-model.number="showcaseForm.sort_order"
                 type="number"
                 min="1"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono font-bold focus:outline-none"
               />
             </div>
           </div>
 
           <!-- Cover Image Upload & URL -->
-          <div class="space-y-2 pt-2 border-t border-brand-200">
-            <label class="block font-mono text-brand-700 uppercase">Foto Cover Showcase</label>
+          <div class="space-y-2 pt-2 border-t-2 border-brand-950/20 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Foto Cover Showcase</label>
             
             <div class="flex items-center gap-3">
-              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-brand-50 border border-brand-300 rounded text-brand-900 font-mono text-xs shadow-sm">
-                <Upload class="w-4 h-4 text-brand-600" />
+              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-brand-100 border-2 border-brand-950 text-brand-950 font-mono text-xs font-bold uppercase shadow-[2px_2px_0px_#153227] transition-all">
+                <Upload class="w-4 h-4 text-brand-950" />
                 <span>{{ isUploadingShowcaseImage ? 'Mengunggah ke Cloud...' : 'Unggah Foto dari Komputer' }}</span>
                 <input
                   type="file"
@@ -2403,20 +2623,20 @@ async function handleLogout() {
                   @change="handleShowcaseImageUpload"
                 />
               </label>
-              <span class="text-[11px] text-brand-500 font-mono">atau tempel link URL foto di bawah</span>
+              <span class="text-[11px] text-brand-500 font-mono">atau tempel link URL foto</span>
             </div>
 
             <input
               v-model="showcaseForm.image"
               type="url"
               placeholder="https://images.unsplash.com/... atau URL gambar lainnya"
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono text-xs"
+              class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono text-xs focus:outline-none"
             />
 
             <!-- Live Image Preview -->
-            <div v-if="showcaseForm.image" class="relative w-full h-36 bg-brand-100 border border-brand-300 rounded overflow-hidden mt-2">
+            <div v-if="showcaseForm.image" class="relative w-full h-36 bg-brand-100 border-2 border-brand-950 shadow-[2px_2px_0px_#153227] overflow-hidden mt-2">
               <img :src="showcaseForm.image" class="w-full h-full object-cover" />
-              <div class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white font-mono text-[10px] rounded">
+              <div class="absolute bottom-2 left-2 px-2 py-0.5 bg-brand-950 text-scripture-gold font-mono text-[10px] uppercase font-bold border border-brand-950">
                 Preview Foto Cover
               </div>
             </div>
@@ -2425,11 +2645,11 @@ async function handleLogout() {
         </form>
 
         <!-- Modal Footer -->
-        <div class="px-6 py-4 border-t border-brand-200 bg-brand-50/80 flex items-center justify-end gap-3 flex-shrink-0">
+        <div class="px-6 py-4 border-t-2 border-brand-950 bg-brand-50 flex items-center justify-end gap-3 flex-shrink-0">
           <button
             type="button"
             @click="isShowcaseModalOpen = false"
-            class="px-5 py-2.5 font-mono text-xs text-brand-600 hover:text-brand-900 font-medium"
+            class="px-5 py-2.5 font-mono text-xs uppercase font-bold text-brand-950 hover:bg-brand-100 border-2 border-brand-950 bg-white shadow-[1px_1px_0px_#153227] transition-all"
           >
             Batal
           </button>
@@ -2437,7 +2657,7 @@ async function handleLogout() {
             type="submit"
             form="showcaseCardForm"
             :disabled="actionLoading || isUploadingShowcaseImage"
-            class="px-6 py-2.5 font-mono text-xs uppercase bg-brand-900 text-white hover:bg-brand-800 font-bold rounded flex items-center gap-2 shadow"
+            class="px-6 py-2.5 font-mono text-xs uppercase bg-brand-950 text-scripture-gold hover:bg-brand-900 font-black border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 active:translate-x-0.5 active:translate-y-0.5 transition-all"
           >
             <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />
             <span>{{ isShowcaseEditing ? 'Simpan Kartu Koleksi' : 'Buat Kartu Koleksi' }}</span>
@@ -2450,27 +2670,27 @@ async function handleLogout() {
     <!-- MODAL 2: TAMBAH MASTER KATEGORI BARU -->
     <div
       v-if="isMasterCategoryModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-brand-950/70 backdrop-blur-sm"
       @click.self="isMasterCategoryModalOpen = false"
     >
-      <div class="bg-white border border-brand-300 rounded-xl max-w-md w-full shadow-2xl overflow-hidden">
+      <div class="bg-white border-2 border-brand-950 shadow-[8px_8px_0px_#153227] max-w-md w-full overflow-hidden">
         
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-brand-200 flex items-center justify-between bg-white">
+        <div class="px-6 py-4 border-b-2 border-brand-950 flex items-center justify-between bg-brand-950 text-scripture-gold">
           <div class="flex items-center gap-2.5">
-            <FolderTree class="w-5 h-5 text-brand-800" />
+            <FolderTree class="w-5 h-5 text-scripture-gold" />
             <div>
-              <h2 class="font-serif font-bold text-lg text-brand-950 uppercase">
+              <h2 class="font-sans font-black text-lg text-scripture-gold uppercase">
                 Tambah Master Kategori
               </h2>
-              <p class="text-xs text-brand-500 font-mono">
+              <p class="text-xs text-brand-300 font-mono">
                 Kategori baru untuk pakaian di katalog
               </p>
             </div>
           </div>
           <button
             @click="isMasterCategoryModalOpen = false"
-            class="p-1.5 text-brand-400 hover:text-brand-900 rounded"
+            class="p-1 text-scripture-gold hover:text-white hover:bg-white/10 transition-colors"
           >
             <X class="w-5 h-5" />
           </button>
@@ -2482,47 +2702,47 @@ async function handleLogout() {
           @submit.prevent="handleSaveMasterCategory"
           class="p-6 space-y-4 font-sans text-xs"
         >
-          <div class="space-y-1">
-            <label class="block font-mono text-brand-700 uppercase">Nama Kategori *</label>
+          <div class="space-y-1 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Nama Kategori *</label>
             <input
               v-model="masterCategoryForm.name"
               @input="generateMasterCategorySlug"
               type="text"
               required
               placeholder="Misal: Shorts & Boxers"
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-medium"
+              class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-bold focus:outline-none"
             />
           </div>
 
-          <div class="space-y-1">
-            <label class="block font-mono text-brand-700 uppercase">Slug URL (Otomatis) *</label>
+          <div class="space-y-1 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Slug URL (Otomatis) *</label>
             <input
               v-model="masterCategoryForm.slug"
               type="text"
               required
               placeholder="shorts-boxers"
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+              class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono focus:outline-none"
             />
             <p class="text-[10px] text-brand-500 font-mono">Digunakan sebagai parameter URL di katalog (misal: /catalog?category=shorts-boxers).</p>
           </div>
 
-          <div class="space-y-1">
-            <label class="block font-mono text-brand-700 uppercase">Deskripsi Kategori (Opsional)</label>
+          <div class="space-y-1 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Deskripsi Kategori (Opsional)</label>
             <textarea
               v-model="masterCategoryForm.description"
               rows="2"
               placeholder="Penjelasan singkat kategori pakaian ini..."
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-sans"
+              class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-sans leading-relaxed focus:outline-none"
             ></textarea>
           </div>
         </form>
 
         <!-- Modal Footer -->
-        <div class="px-6 py-4 border-t border-brand-200 bg-brand-50/80 flex items-center justify-end gap-3">
+        <div class="px-6 py-4 border-t-2 border-brand-950 bg-brand-50 flex items-center justify-end gap-3">
           <button
             type="button"
             @click="isMasterCategoryModalOpen = false"
-            class="px-5 py-2.5 font-mono text-xs text-brand-600 hover:text-brand-900 font-medium"
+            class="px-5 py-2.5 font-mono text-xs uppercase font-bold text-brand-950 hover:bg-brand-100 border-2 border-brand-950 bg-white shadow-[1px_1px_0px_#153227] transition-all"
           >
             Batal
           </button>
@@ -2530,7 +2750,7 @@ async function handleLogout() {
             type="submit"
             form="masterCategoryFormEl"
             :disabled="actionLoading"
-            class="px-6 py-2.5 font-mono text-xs uppercase bg-brand-900 text-white hover:bg-brand-800 font-bold rounded flex items-center gap-2 shadow"
+            class="px-6 py-2.5 font-mono text-xs uppercase bg-brand-950 text-scripture-gold hover:bg-brand-900 font-black border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 active:translate-x-0.5 active:translate-y-0.5 transition-all"
           >
             <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />
             <span>Buat Master Kategori</span>
@@ -2543,60 +2763,60 @@ async function handleLogout() {
     <!-- MODAL FORM PAKET BUNDLE (TAMBAH / EDIT) -->
     <div
       v-if="isBundleModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-brand-950/70 backdrop-blur-sm"
       @click.self="isBundleModalOpen = false"
     >
-      <div class="bg-white border border-brand-300 rounded-xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="bg-white border-2 border-brand-950 shadow-[8px_8px_0px_#153227] max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden">
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-brand-200 flex items-center justify-between flex-shrink-0 bg-white">
+        <div class="px-6 py-4 border-b-2 border-brand-950 flex items-center justify-between flex-shrink-0 bg-brand-950 text-scripture-gold">
           <div class="flex items-center gap-2.5">
             <Boxes class="w-5 h-5 text-scripture-gold" />
-            <h3 class="font-serif font-bold text-lg sm:text-xl text-brand-950 uppercase tracking-tight">
+            <h3 class="font-sans font-black text-lg sm:text-xl text-scripture-gold uppercase tracking-tight">
               {{ isBundleEditing ? 'Edit Paket Bundling' : 'Tambah Paket Bundling Baru' }}
             </h3>
           </div>
           <button
             @click="isBundleModalOpen = false"
-            class="p-1.5 text-brand-400 hover:text-brand-900 rounded-md hover:bg-brand-100 transition-colors"
+            class="p-1 text-scripture-gold hover:text-white hover:bg-white/10 transition-colors"
           >
             <X class="w-5 h-5" />
           </button>
         </div>
 
         <!-- Modal Body (Scrollable) -->
-        <div class="p-6 overflow-y-auto space-y-6 flex-grow font-sans text-xs">
+        <div class="p-6 overflow-y-auto space-y-5 flex-grow font-sans text-xs">
           <!-- Title & Subtitle -->
           <div class="space-y-4">
-            <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase font-semibold">Judul Paket Bundle *</label>
+            <div class="space-y-1 font-mono">
+              <label class="block uppercase font-bold text-brand-950">Judul Paket Bundle *</label>
               <input
                 v-model="bundleForm.title"
                 type="text"
                 required
                 placeholder="Contoh: The Sabbath Essential Set"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-medium"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-bold focus:outline-none"
               />
             </div>
 
-            <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase font-semibold">Sub-judul / Ringkasan Isi</label>
+            <div class="space-y-1 font-mono">
+              <label class="block uppercase font-bold text-brand-950">Sub-judul / Ringkasan Isi</label>
               <input
                 v-model="bundleForm.subtitle"
                 type="text"
                 placeholder="Contoh: Heavyweight Boxy Tee + Corduroy Cap + Free Sticker Pack"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 focus:outline-none"
               />
             </div>
           </div>
 
           <!-- Badge & Presets -->
-          <div class="space-y-2">
-            <label class="block font-mono text-brand-700 uppercase font-semibold">Badge / Label Promosi</label>
+          <div class="space-y-1.5 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Badge / Label Promosi</label>
             <input
               v-model="bundleForm.badge"
               type="text"
               placeholder="Contoh: BEST VALUE"
-              class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+              class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono uppercase font-bold focus:outline-none"
             />
             <div class="flex items-center gap-1.5 flex-wrap pt-1">
               <span class="text-[10px] font-mono text-brand-500">Pilihan Cepat:</span>
@@ -2605,8 +2825,8 @@ async function handleLogout() {
                 :key="p"
                 type="button"
                 @click="bundleForm.badge = p"
-                class="px-2 py-0.5 text-[10px] font-mono rounded border transition-colors"
-                :class="bundleForm.badge === p ? 'bg-brand-900 text-white border-brand-900' : 'bg-brand-100 hover:bg-brand-200 border-brand-300 text-brand-700'"
+                class="px-2 py-0.5 text-[10px] font-mono border transition-colors font-bold"
+                :class="bundleForm.badge === p ? 'bg-brand-950 text-scripture-gold border-brand-950' : 'bg-white hover:bg-brand-100 border-brand-950 text-brand-950'"
               >
                 {{ p }}
               </button>
@@ -2614,10 +2834,10 @@ async function handleLogout() {
           </div>
 
           <!-- Bundle Image (Upload or URL) -->
-          <div class="space-y-2 border-t border-brand-200 pt-4">
-            <label class="block font-mono text-brand-700 uppercase font-semibold">Foto Paket Bundle *</label>
+          <div class="space-y-2 border-t-2 border-brand-950/20 pt-4 font-mono">
+            <label class="block uppercase font-bold text-brand-950">Foto Paket Bundle *</label>
             <div class="flex flex-col sm:flex-row gap-4 items-start">
-              <div class="w-32 h-32 aspect-[4/5] bg-brand-100 border border-brand-300 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+              <div class="w-32 h-32 aspect-[4/5] bg-brand-100 border-2 border-brand-950 shadow-[2px_2px_0px_#153227] overflow-hidden flex-shrink-0 flex items-center justify-center">
                 <img
                   v-if="bundleForm.image"
                   :src="bundleForm.image"
@@ -2626,10 +2846,10 @@ async function handleLogout() {
                 />
                 <span v-else class="text-[10px] font-mono text-brand-400 text-center p-2">Belum ada foto</span>
               </div>
-              <div class="space-y-3 flex-grow w-full">
+              <div class="space-y-2 flex-grow w-full">
                 <div>
-                  <label class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-brand-50 border border-brand-300 rounded text-brand-900 font-mono text-xs shadow-sm">
-                    <Upload class="w-4 h-4 text-brand-600" />
+                  <label class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-brand-100 border-2 border-brand-950 text-brand-950 font-mono text-xs font-bold uppercase shadow-[2px_2px_0px_#153227] transition-all">
+                    <Upload class="w-4 h-4 text-brand-950" />
                     <span>{{ isUploadingBundleImage ? 'Mengunggah...' : 'Upload Foto Bundle' }}</span>
                     <input
                       type="file"
@@ -2646,7 +2866,7 @@ async function handleLogout() {
                     v-model="bundleForm.image"
                     type="url"
                     placeholder="https://images.unsplash.com/..."
-                    class="w-full px-3 py-1.5 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono text-xs"
+                    class="w-full px-3 py-1.5 bg-white border-2 border-brand-950 text-brand-950 font-mono text-xs focus:outline-none"
                   />
                 </div>
               </div>
@@ -2654,35 +2874,35 @@ async function handleLogout() {
           </div>
 
           <!-- Pricing & Savings -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-brand-200 pt-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t-2 border-brand-950/20 pt-4 font-mono">
             <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase font-semibold">Harga Normal (Asli)</label>
+              <label class="block uppercase font-bold text-brand-950">Harga Normal (Asli)</label>
               <input
                 v-model.number="bundleForm.originalPrice"
                 type="number"
                 min="0"
                 step="5000"
                 @input="updateBundleSavingsText"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono focus:outline-none"
               />
             </div>
 
             <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase font-semibold">Harga Promo Bundle</label>
+              <label class="block uppercase font-bold text-brand-950">Harga Promo Bundle</label>
               <input
                 v-model.number="bundleForm.bundlePrice"
                 type="number"
                 min="0"
                 step="5000"
                 @input="updateBundleSavingsText"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono font-bold"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono font-bold focus:outline-none"
               />
             </div>
 
             <div class="space-y-1">
               <div class="flex items-center justify-between">
-                <label class="block font-mono text-brand-700 uppercase font-semibold">Teks Hemat</label>
-                <span class="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                <label class="block uppercase font-bold text-brand-950">Teks Hemat</label>
+                <span class="text-[10px] font-mono text-emerald-950 font-bold bg-emerald-200 border border-brand-950 px-1.5 py-0.2">
                   ✨ Otomatis
                 </span>
               </div>
@@ -2690,45 +2910,42 @@ async function handleLogout() {
                 v-model="bundleForm.savingsText"
                 type="text"
                 placeholder="Otomatis: misal Hemat Rp50.000"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono focus:outline-none"
               />
-              <p class="text-[10px] text-brand-500 font-mono">
-                Otomatis dihitung dari selisih Harga Asli - Harga Promo (bisa disesuaikan manual).
-              </p>
             </div>
           </div>
 
           <!-- Inclusions Repeater (Rincian Item) -->
-          <div class="space-y-3 border-t border-brand-200 pt-4">
-            <div class="flex items-center justify-between">
+          <div class="space-y-3 border-t-2 border-brand-950/20 pt-4">
+            <div class="flex items-center justify-between font-mono">
               <div>
-                <label class="block font-mono text-brand-900 uppercase font-semibold">Rincian Item Termasuk Dalam Paket</label>
+                <label class="block text-brand-950 uppercase font-bold">Rincian Item Termasuk Dalam Paket</label>
                 <p class="text-[11px] text-brand-500 font-mono">Item ini akan tampil di dalam tombol "Lihat Rincian Item" pada beranda.</p>
               </div>
               <button
                 type="button"
                 @click="addBundleItem"
-                class="px-3 py-1 bg-brand-100 hover:bg-brand-200 border border-brand-300 rounded text-brand-900 font-mono text-xs flex items-center gap-1.5"
+                class="px-3 py-1.5 bg-brand-950 hover:bg-brand-900 border-2 border-brand-950 text-scripture-gold font-mono text-xs font-bold uppercase shadow-[1px_1px_0px_#153227] flex items-center gap-1.5 transition-all"
               >
                 <Plus class="w-3.5 h-3.5" />
                 <span>Tambah Item</span>
               </button>
             </div>
 
-            <div class="space-y-3">
+            <div class="space-y-2.5">
               <div
                 v-for="(item, idx) in bundleForm.items"
                 :key="idx"
-                class="p-3 bg-brand-50 border border-brand-200 rounded space-y-2 relative"
+                class="p-3 bg-white border-2 border-brand-950 shadow-[2px_2px_0px_#153227] space-y-2 relative"
               >
-                <div class="flex items-center justify-between">
-                  <span class="font-mono text-[11px] text-brand-600 font-bold uppercase">
+                <div class="flex items-center justify-between font-mono">
+                  <span class="text-[11px] text-brand-950 font-bold uppercase">
                     Item #{{ idx + 1 }}
                   </span>
                   <button
                     type="button"
                     @click="removeBundleItem(idx)"
-                    class="p-1 text-rose-600 hover:text-rose-800 rounded hover:bg-rose-50 transition-colors"
+                    class="p-1 text-rose-900 bg-rose-100 hover:bg-rose-200 border border-brand-950 shadow-[1px_1px_0px_#153227] transition-all"
                     title="Hapus Item Ini"
                   >
                     <Trash2 class="w-3.5 h-3.5" />
@@ -2736,22 +2953,22 @@ async function handleLogout() {
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <span class="text-[10px] font-mono text-brand-500 block mb-0.5">Nama Item *</span>
+                  <div class="font-mono">
+                    <span class="text-[10px] text-brand-600 block mb-0.5 font-bold uppercase">Nama Item *</span>
                     <input
                       v-model="item.name"
                       type="text"
                       placeholder="Contoh: Heavyweight Boxy Tee"
-                      class="w-full px-2.5 py-1.5 bg-white border border-brand-300 rounded text-brand-950 text-xs"
+                      class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs font-bold focus:outline-none"
                     />
                   </div>
-                  <div>
-                    <span class="text-[10px] font-mono text-brand-500 block mb-0.5">Detail / Bahan / Catatan</span>
+                  <div class="font-mono">
+                    <span class="text-[10px] text-brand-600 block mb-0.5 font-bold uppercase">Detail / Bahan / Catatan</span>
                     <input
                       v-model="item.detail"
                       type="text"
                       placeholder="Contoh: Katun 16s 235 GSM (Size S-XL)"
-                      class="w-full px-2.5 py-1.5 bg-white border border-brand-300 rounded text-brand-950 text-xs"
+                      class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs focus:outline-none"
                     />
                   </div>
                 </div>
@@ -2760,14 +2977,14 @@ async function handleLogout() {
           </div>
 
           <!-- Sort order & Active toggle -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-brand-200 pt-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t-2 border-brand-950/20 pt-4 font-mono">
             <div class="space-y-1">
-              <label class="block font-mono text-brand-700 uppercase font-semibold">Urutan Tampil (Sort Order)</label>
+              <label class="block uppercase font-bold text-brand-950">Urutan Tampil (Sort Order)</label>
               <input
                 v-model.number="bundleForm.sort_order"
                 type="number"
                 min="1"
-                class="w-full px-3 py-2 bg-brand-50 border border-brand-300 rounded text-brand-950 font-mono"
+                class="w-full px-3 py-2 bg-white border-2 border-brand-950 text-brand-950 font-mono font-bold focus:outline-none"
               />
             </div>
 
@@ -2776,9 +2993,9 @@ async function handleLogout() {
                 id="bundle-active"
                 v-model="bundleForm.is_active"
                 type="checkbox"
-                class="w-4 h-4 rounded text-brand-900 border-brand-300 focus:ring-brand-900"
+                class="w-4 h-4 accent-brand-950 rounded-none"
               />
-              <label for="bundle-active" class="font-mono text-brand-800 text-xs select-none">
+              <label for="bundle-active" class="text-brand-950 text-xs select-none font-bold">
                 Aktifkan & Tampilkan di Beranda
               </label>
             </div>
@@ -2786,11 +3003,11 @@ async function handleLogout() {
         </div>
 
         <!-- Modal Footer -->
-        <div class="px-6 py-4 border-t border-brand-200 bg-white flex items-center justify-end gap-3 flex-shrink-0">
+        <div class="px-6 py-4 border-t-2 border-brand-950 bg-brand-50 flex items-center justify-end gap-3 flex-shrink-0">
           <button
             type="button"
             @click="isBundleModalOpen = false"
-            class="px-4 py-2 text-xs font-mono uppercase tracking-wider text-brand-600 hover:bg-brand-100 rounded"
+            class="px-5 py-2.5 font-mono text-xs uppercase font-bold text-brand-950 hover:bg-brand-100 border-2 border-brand-950 bg-white shadow-[1px_1px_0px_#153227] transition-all"
           >
             Batal
           </button>
@@ -2798,7 +3015,7 @@ async function handleLogout() {
             type="button"
             :disabled="actionLoading || isUploadingBundleImage"
             @click="handleSaveBundle"
-            class="px-6 py-2 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-bold rounded flex items-center gap-2 shadow-sm transition-colors"
+            class="px-6 py-2.5 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono text-xs uppercase font-black border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 active:translate-x-0.5 active:translate-y-0.5 transition-all"
           >
             <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />
             <span>{{ isBundleEditing ? 'Simpan Perubahan' : 'Buat Paket Bundle' }}</span>
@@ -2807,5 +3024,6 @@ async function handleLogout() {
       </div>
     </div>
 
+    </div>
   </div>
 </template>

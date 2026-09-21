@@ -263,63 +263,66 @@ function submitOrder() {
     >
       <!-- Backdrop -->
       <div
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        class="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
         @click="closeModal"
       ></div>
 
-      <!-- Modal Card -->
+      <!-- Modal Card (Streetwear Zine Style) -->
       <div
-        class="relative w-full max-w-lg bg-[#fbfbfa] border border-brand-300 rounded-xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[92vh] my-auto"
+        class="relative w-full max-w-lg bg-[#faf8f4] border-2 border-brand-950 shadow-[6px_6px_0px_#153227] overflow-hidden z-10 flex flex-col max-h-[92vh] my-auto"
         @click.stop
       >
-        <!-- Modal Header -->
-        <div class="px-5 py-4 border-b border-brand-200 bg-white flex items-center justify-between">
+        <!-- Masking Tape Accent -->
+        <div class="tape-strip -top-2.5 right-10 rotate-1 hidden sm:block"></div>
+
+        <!-- Ambient Halftone Dot Background Pattern -->
+        <div class="absolute inset-0 bg-halftone text-brand-950/[0.05] pointer-events-none z-0"></div>
+
+        <!-- Modal Header Bar -->
+        <div class="relative z-10 px-5 py-3.5 bg-brand-950 text-scripture-gold border-b-2 border-brand-950 flex items-center justify-between">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-full bg-brand-900 text-white flex items-center justify-center">
-              <ShoppingBag class="w-4 h-4 text-scripture-sand" />
+            <div class="w-7 h-7 bg-scripture-gold text-brand-950 border border-brand-950 flex items-center justify-center font-bold">
+              <ShoppingBag class="w-4 h-4" />
             </div>
             <div>
-              <h2 id="order-modal-title" class="font-serif font-bold text-base sm:text-lg text-brand-950 uppercase tracking-tight leading-none">
+              <h2 id="order-modal-title" class="font-sans font-black text-sm sm:text-base uppercase tracking-tight text-scripture-gold leading-none">
                 Formulir Pemesanan
               </h2>
-              <p class="font-mono text-[10px] text-brand-500 uppercase tracking-wider mt-0.5">
-                Konfirmasi cepat langsung via WhatsApp CS
+              <p class="font-mono text-[9px] sm:text-[10px] text-white/70 uppercase tracking-widest mt-0.5">
+                BT // DIRECT WHATSAPP CHECKOUT
               </p>
             </div>
           </div>
 
           <button
             @click="closeModal"
-            class="p-1.5 rounded-full text-brand-400 hover:text-brand-800 hover:bg-brand-100 transition-colors"
+            class="p-1 bg-white text-brand-950 hover:bg-rose-600 hover:text-white transition-colors border border-brand-950 shadow-[1px_1px_0px_#000]"
             aria-label="Tutup form pemesanan"
           >
-            <X class="w-5 h-5" />
+            <X class="w-4 h-4" />
           </button>
         </div>
 
         <!-- Scrollable Form Body -->
-        <div class="px-5 py-4 overflow-y-auto space-y-5 text-brand-800 font-sans">
+        <div class="relative z-10 px-5 py-4 overflow-y-auto space-y-4 text-brand-900 font-sans">
           
           <!-- Active Serving CP Badge (WIB Based) -->
-          <div class="px-3.5 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div class="p-2.5 bg-white border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
             <div class="flex items-center gap-2">
-              <span class="relative flex h-2.5 w-2.5">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              <span class="text-emerald-900 font-medium">
-                Melayani Sekarang: <strong class="text-emerald-950 font-bold">{{ catalogStore.activeWhatsAppCP?.name }}</strong>
+              <span class="w-2 h-2 bg-emerald-600 border border-brand-950"></span>
+              <span class="text-brand-900 text-[11px] sm:text-xs">
+                Melayani: <strong class="font-black text-brand-950 uppercase">{{ catalogStore.activeWhatsAppCP?.name }}</strong>
               </span>
             </div>
-            <div class="inline-flex items-center gap-1.5 text-[10px] text-emerald-800 bg-white/90 border border-emerald-300 px-2 py-0.5 rounded font-semibold">
-              <Clock class="w-3 h-3 text-emerald-600" />
+            <div class="inline-flex items-center gap-1 text-[10px] bg-brand-100 border border-brand-950 px-2 py-0.5 font-bold uppercase">
+              <Clock class="w-3 h-3 text-brand-950" />
               <span>{{ catalogStore.activeWhatsAppCP?.is_shift ? `${catalogStore.activeWhatsAppCP.start_time} - ${catalogStore.activeWhatsAppCP.end_time} WIB` : 'Standby CS' }}</span>
             </div>
           </div>
 
           <!-- Product Summary Preview -->
-          <div v-if="product" class="flex gap-3.5 p-3 rounded-lg bg-white border border-brand-200 shadow-xs">
-            <div class="w-20 h-24 rounded bg-brand-100 overflow-hidden flex-shrink-0 border border-brand-200">
+          <div v-if="product" class="flex gap-3 p-3 bg-white border-2 border-brand-950 shadow-[2px_2px_0px_#153227]">
+            <div class="w-16 h-20 bg-brand-100 overflow-hidden shrink-0 border border-brand-950">
               <img
                 :src="productImage"
                 :alt="product.title"
@@ -329,17 +332,17 @@ function submitOrder() {
 
             <div class="flex flex-col justify-between flex-grow py-0.5">
               <div>
-                <span class="font-mono text-[10px] uppercase text-scripture-bronze tracking-wider block">
-                  {{ product.category?.name || 'Bible Talk Exclusive' }}
+                <span class="font-mono text-[9px] uppercase text-brand-600 tracking-wider block font-semibold">
+                  {{ product.category?.name || 'Rilisan Bible Talk' }}
                 </span>
-                <h3 class="font-serif font-bold text-sm sm:text-base text-brand-950 leading-snug line-clamp-2">
+                <h3 class="font-sans font-black text-xs sm:text-sm text-brand-950 leading-snug line-clamp-2 uppercase">
                   {{ product.title }}
                 </h3>
               </div>
 
-              <div class="flex items-baseline justify-between pt-1 border-t border-brand-100">
-                <span class="font-mono text-xs text-brand-500">Harga Satuan:</span>
-                <span class="font-mono font-bold text-sm text-brand-900">
+              <div class="flex items-baseline justify-between pt-1 border-t border-brand-950/15 font-mono">
+                <span class="text-[10px] text-brand-600 font-semibold uppercase">Harga:</span>
+                <span class="font-black text-xs sm:text-sm text-brand-950">
                   {{ catalogStore.formatPrice(unitPrice) }}
                 </span>
               </div>
@@ -347,40 +350,40 @@ function submitOrder() {
           </div>
 
           <!-- Size Selection (if variants exist) -->
-          <div v-if="availableVariants.length > 0" class="space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="font-mono text-xs uppercase tracking-wider text-brand-800 font-semibold flex items-center gap-1.5">
+          <div v-if="availableVariants.length > 0" class="space-y-1.5 font-mono">
+            <div class="flex items-center justify-between text-xs">
+              <label class="uppercase tracking-wider text-brand-950 font-bold flex items-center gap-1">
                 <span>Pilih Ukuran</span>
-                <span class="text-rose-500">*</span>
+                <span class="text-rose-600">*</span>
               </label>
-              <span v-if="currentVariant" class="font-mono text-[11px] text-brand-500">
-                Tersedia: 
-                <strong :class="currentVariant.stock > 0 ? 'text-emerald-700' : 'text-rose-600'">
+              <span v-if="currentVariant" class="text-[11px] text-brand-600">
+                Stok: 
+                <strong :class="currentVariant.stock > 0 ? 'text-emerald-800' : 'text-rose-600'" class="font-bold">
                   {{ currentVariant.stock > 0 ? `${currentVariant.stock} pcs` : 'Habis' }}
                 </strong>
               </span>
             </div>
 
-            <div class="grid grid-cols-5 gap-2">
+            <div class="grid grid-cols-5 gap-1.5">
               <button
                 v-for="v in availableVariants"
                 :key="v.id || v.size"
                 type="button"
                 @click="selectedSize = v.size"
                 :disabled="v.stock <= 0"
-                class="py-2.5 px-2 rounded font-mono text-xs font-bold border transition-all text-center flex flex-col items-center justify-center gap-0.5"
+                class="py-2 px-1 font-mono text-xs font-bold border-2 transition-all text-center flex flex-col items-center justify-center"
                 :class="[
                   selectedSize === v.size
-                    ? 'bg-brand-900 text-white border-brand-900 shadow-sm'
+                    ? 'bg-brand-950 text-scripture-gold border-brand-950 shadow-[2px_2px_0px_#153227]'
                     : v.stock > 0
-                    ? 'bg-white border-brand-300 text-brand-800 hover:border-brand-600'
-                    : 'bg-brand-100/70 border-brand-200 text-brand-300 cursor-not-allowed line-through'
+                    ? 'bg-white border-brand-950 text-brand-950 hover:bg-brand-100 shadow-[1px_1px_0px_#153227]'
+                    : 'bg-brand-100 border-brand-950/30 text-brand-400 cursor-not-allowed line-through opacity-60'
                 ]"
               >
                 <span>{{ v.size }}</span>
                 <span
-                  class="text-[9px] font-normal"
-                  :class="selectedSize === v.size ? 'text-scripture-sand' : v.stock > 0 ? 'text-brand-500' : 'text-rose-400'"
+                  class="text-[8px] font-mono"
+                  :class="selectedSize === v.size ? 'text-scripture-gold/80' : v.stock > 0 ? 'text-brand-600' : 'text-rose-500'"
                 >
                   {{ v.stock > 0 ? `${v.stock}` : '✕' }}
                 </span>
@@ -389,28 +392,28 @@ function submitOrder() {
           </div>
 
           <!-- Quantity Selector -->
-          <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-brand-200">
+          <div class="flex items-center justify-between bg-white p-2.5 border-2 border-brand-950 shadow-[2px_2px_0px_#153227] font-mono text-xs">
             <div>
-              <span class="font-mono text-xs uppercase tracking-wider text-brand-800 font-semibold block">
+              <span class="uppercase tracking-wider text-brand-950 font-bold block">
                 Jumlah Pesanan
               </span>
-              <span class="font-mono text-[11px] text-brand-500">
+              <span class="text-[10px] text-brand-500">
                 Maksimal sesuai sisa stok
               </span>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
               <button
                 type="button"
                 @click="decreaseQty"
                 :disabled="quantity <= 1"
-                class="w-8 h-8 rounded border border-brand-300 flex items-center justify-center text-brand-700 hover:bg-brand-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                class="w-7 h-7 border-2 border-brand-950 bg-white flex items-center justify-center text-brand-950 hover:bg-brand-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shadow-[1px_1px_0px_#153227]"
                 aria-label="Kurangi jumlah"
               >
                 <Minus class="w-3.5 h-3.5" />
               </button>
 
-              <span class="font-mono font-bold text-sm w-6 text-center text-brand-950">
+              <span class="font-mono font-black text-sm w-6 text-center text-brand-950">
                 {{ quantity }}
               </span>
 
@@ -418,7 +421,7 @@ function submitOrder() {
                 type="button"
                 @click="increaseQty"
                 :disabled="quantity >= maxStock"
-                class="w-8 h-8 rounded border border-brand-300 flex items-center justify-center text-brand-700 hover:bg-brand-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                class="w-7 h-7 border-2 border-brand-950 bg-white flex items-center justify-center text-brand-950 hover:bg-brand-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shadow-[1px_1px_0px_#153227]"
                 aria-label="Tambah jumlah"
               >
                 <Plus class="w-3.5 h-3.5" />
@@ -426,88 +429,82 @@ function submitOrder() {
             </div>
           </div>
 
-          <!-- Form Fields -->
-          <div class="space-y-3.5">
+          <!-- Form Fields (Clean Brutalist Zine Inputs) -->
+          <div class="space-y-3 font-mono text-xs">
             
             <!-- Customer Name -->
             <div>
-              <label class="block font-mono text-xs uppercase tracking-wider text-brand-800 font-semibold mb-1">
-                Nama Lengkap Penerima <span class="text-rose-500">*</span>
+              <label class="block uppercase tracking-wider text-brand-950 font-bold mb-1">
+                Nama Lengkap Penerima <span class="text-rose-600">*</span>
               </label>
               <div class="relative">
-                <User class="w-4 h-4 text-brand-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <User class="w-4 h-4 text-brand-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   v-model="customerName"
                   type="text"
                   placeholder="Contoh: Daniel Christian"
-                  class="w-full pl-9 pr-3.5 py-2.5 bg-white border border-brand-300 rounded text-sm text-brand-900 placeholder-brand-400 focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800"
+                  class="w-full pl-9 pr-3.5 py-2 bg-white border-2 border-brand-950 text-xs text-brand-950 placeholder-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-950 shadow-[2px_2px_0px_#153227]"
                 />
               </div>
             </div>
 
             <!-- Customer WhatsApp / Phone -->
             <div>
-              <label class="block font-mono text-xs uppercase tracking-wider text-brand-800 font-semibold mb-1">
-                Nomor WhatsApp / HP Aktif <span class="text-rose-500">*</span>
+              <label class="block uppercase tracking-wider text-brand-950 font-bold mb-1">
+                Nomor WhatsApp / HP <span class="text-rose-600">*</span>
               </label>
               <div class="relative">
-                <Phone class="w-4 h-4 text-brand-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Phone class="w-4 h-4 text-brand-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   v-model="customerPhone"
                   type="tel"
                   placeholder="Contoh: 081234567890"
-                  class="w-full pl-9 pr-3.5 py-2.5 bg-white border border-brand-300 rounded text-sm text-brand-900 placeholder-brand-400 focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800"
+                  class="w-full pl-9 pr-3.5 py-2 bg-white border-2 border-brand-950 text-xs text-brand-950 placeholder-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-950 shadow-[2px_2px_0px_#153227]"
                 />
               </div>
-              <p class="font-mono text-[10px] text-brand-500 mt-1">
-                Admin CS akan mengirimkan nomor resi & rincian transfer ke nomor ini.
-              </p>
             </div>
 
             <!-- Shipping Address -->
             <div>
-              <label class="block font-mono text-xs uppercase tracking-wider text-brand-800 font-semibold mb-1">
-                Alamat Lengkap Tujuan Pengiriman <span class="text-rose-500">*</span>
+              <label class="block uppercase tracking-wider text-brand-950 font-bold mb-1">
+                Alamat Pengiriman Lengkap <span class="text-rose-600">*</span>
               </label>
               <div class="relative">
-                <MapPin class="w-4 h-4 text-brand-400 absolute left-3 top-3" />
+                <MapPin class="w-4 h-4 text-brand-500 absolute left-3 top-2.5" />
                 <textarea
                   v-model="customerAddress"
-                  rows="3"
-                  placeholder="Contoh: Jl. Diponegoro No. 45, RT 02 / RW 05, Kec. Menteng, Jakarta Pusat, 10310"
-                  class="w-full pl-9 pr-3.5 py-2.5 bg-white border border-brand-300 rounded text-sm text-brand-900 placeholder-brand-400 focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 resize-none"
+                  rows="2"
+                  placeholder="Nama jalan, RT/RW, kelurahan, kecamatan, kota & kode pos..."
+                  class="w-full pl-9 pr-3.5 py-2 bg-white border-2 border-brand-950 text-xs text-brand-950 placeholder-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-950 shadow-[2px_2px_0px_#153227] resize-none"
                 ></textarea>
               </div>
-              <p class="font-mono text-[10px] text-brand-500 mt-1">
-                Mohon sertakan nama jalan, RT/RW, kecamatan, kota, serta kode pos untuk hitung ongkir.
-              </p>
             </div>
 
             <!-- Notes (Optional) -->
             <div>
-              <label class="block font-mono text-xs uppercase tracking-wider text-brand-800 font-semibold mb-1">
+              <label class="block uppercase tracking-wider text-brand-700 font-bold mb-1">
                 Catatan Khusus <span class="text-brand-400 font-normal">(Opsional)</span>
               </label>
               <div class="relative">
-                <FileText class="w-4 h-4 text-brand-400 absolute left-3 top-3" />
+                <FileText class="w-4 h-4 text-brand-500 absolute left-3 top-2.5" />
                 <textarea
                   v-model="customerNotes"
-                  rows="2"
-                  placeholder="Contoh: Titipkan di pos satpam jika tidak ada orang / request ucapan rohani."
-                  class="w-full pl-9 pr-3.5 py-2.5 bg-white border border-brand-300 rounded text-sm text-brand-900 placeholder-brand-400 focus:outline-none focus:border-brand-800 focus:ring-1 focus:ring-brand-800 resize-none"
+                  rows="1"
+                  placeholder="Contoh: Titipkan Satpam"
+                  class="w-full pl-9 pr-3.5 py-2 bg-white border-2 border-brand-950 text-xs text-brand-950 placeholder-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-950 shadow-[2px_2px_0px_#153227] resize-none"
                 ></textarea>
               </div>
             </div>
 
             <!-- Checkbox Remember Info -->
-            <label class="flex items-center gap-2 cursor-pointer select-none pt-1">
+            <label class="flex items-center gap-2 cursor-pointer select-none pt-0.5">
               <input
                 type="checkbox"
                 v-model="saveInfo"
-                class="w-4 h-4 accent-brand-900 rounded border-brand-300"
+                class="w-3.5 h-3.5 accent-brand-950 rounded-none cursor-pointer"
               />
-              <span class="font-mono text-xs text-brand-600">
-                Simpan data alamat saya untuk pesanan berikutnya
+              <span class="font-mono text-[11px] text-brand-700">
+                Simpan data saya untuk pesanan berikutnya
               </span>
             </label>
 
@@ -516,45 +513,45 @@ function submitOrder() {
           <!-- Error Alert -->
           <div
             v-if="errorMessage"
-            class="flex items-start gap-2 p-3 rounded-md bg-rose-50 border border-rose-200 text-rose-800 text-xs font-mono animate-fadeIn"
+            class="flex items-start gap-2 p-2.5 bg-rose-100 border-2 border-rose-600 text-rose-900 text-xs font-mono animate-fadeIn"
           >
-            <AlertCircle class="w-4 h-4 flex-shrink-0 text-rose-600 mt-0.5" />
+            <AlertCircle class="w-4 h-4 shrink-0 text-rose-700 mt-0.5" />
             <span>{{ errorMessage }}</span>
           </div>
 
-          <!-- Order Summary Card -->
-          <div class="p-3.5 bg-brand-100/60 border border-brand-200 rounded-lg space-y-2 font-mono text-xs">
-            <div class="flex items-center justify-between text-brand-600">
-              <span>Subtotal Produk ({{ quantity }}x):</span>
-              <span class="text-brand-900 font-medium">{{ catalogStore.formatPrice(subtotal) }}</span>
+          <!-- Order Summary Card (Monospace Tech Receipt) -->
+          <div class="p-3 bg-white border-2 border-brand-950 shadow-[2px_2px_0px_#153227] space-y-1.5 font-mono text-xs">
+            <div class="flex items-center justify-between text-brand-700">
+              <span>Subtotal ({{ quantity }}x):</span>
+              <span class="font-bold text-brand-950">{{ catalogStore.formatPrice(subtotal) }}</span>
             </div>
-            <div class="flex items-center justify-between text-brand-600">
-              <span>Ongkos Kirim:</span>
-              <span class="text-brand-500 italic">Dihitung oleh Admin CS via WA</span>
+            <div class="flex items-center justify-between text-brand-600 text-[11px]">
+              <span>Ongkir:</span>
+              <span class="italic">Dihitung Admin via WA</span>
             </div>
-            <div class="pt-2 border-t border-brand-200 flex items-center justify-between font-bold text-sm text-brand-950">
-              <span>Estimasi Total:</span>
-              <span class="text-brand-950 font-serif text-base">{{ catalogStore.formatPrice(subtotal) }}</span>
+            <div class="pt-1.5 border-t border-brand-950/20 flex items-center justify-between font-black text-sm text-brand-950">
+              <span class="uppercase">Total Pesanan:</span>
+              <span class="text-brand-950">{{ catalogStore.formatPrice(subtotal) }}</span>
             </div>
           </div>
 
         </div>
 
-        <!-- Modal Footer CTA -->
-        <div class="p-4 border-t border-brand-200 bg-white flex flex-col gap-2">
+        <!-- Modal Footer CTA Button -->
+        <div class="relative z-10 p-4 border-t-2 border-brand-950 bg-white flex flex-col gap-1.5 font-mono">
           <button
             type="button"
             @click="submitOrder"
             :disabled="isOutOfStock"
-            class="w-full py-3.5 px-5 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white font-mono text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2.5 shadow-md transition-all"
+            class="w-full py-3 px-5 border-2 border-brand-950 bg-brand-950 text-scripture-gold uppercase tracking-widest font-black text-xs flex items-center justify-center gap-2 shadow-[3px_3px_0px_#153227] active:translate-x-0.5 active:translate-y-0.5 hover:bg-brand-900 transition-all"
             :class="{ 'opacity-50 cursor-not-allowed': isOutOfStock }"
           >
-            <MessageCircle class="w-4 h-4 text-white" />
-            <span>PESAN VIA {{ catalogStore.activeWhatsAppCP?.name || 'WHATSAPP' }}</span>
+            <MessageCircle class="w-4 h-4 text-emerald-400" />
+            <span>PESAN VIA WHATSAPP (CS {{ catalogStore.activeWhatsAppCP?.name || 'BIBLE TALK' }})</span>
           </button>
 
-          <p class="text-center font-mono text-[10px] text-brand-500">
-            Aman & Langsung • Terhubung ke {{ catalogStore.activeWhatsAppCP?.displayText || 'Customer Service Resmi' }}
+          <p class="text-center text-[10px] text-brand-600 uppercase tracking-wider">
+            Terhubung langsung ke WhatsApp resmi Bible Talk
           </p>
         </div>
 
@@ -576,6 +573,6 @@ function submitOrder() {
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 </style>

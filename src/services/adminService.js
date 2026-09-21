@@ -211,6 +211,8 @@ export async function updateStoreSettings(settings) {
       JSON.stringify({
         whatsapp_shifts: settings.whatsapp_shifts,
         whatsapp_shifts_enabled: settings.whatsapp_shifts_enabled,
+        hero_slides: settings.hero_slides,
+        hero_slide_interval: settings.hero_slide_interval,
       })
     )
   } catch (e) {
@@ -228,10 +230,12 @@ export async function updateStoreSettings(settings) {
     return { data, savedToDb: true }
   } catch (err) {
     console.warn('Supabase store_settings upsert error:', err.message)
-    // If error is caused by missing whatsapp_shifts or whatsapp_shifts_enabled column in Supabase
+    // If error is caused by missing whatsapp_shifts or hero_slides columns in Supabase
     const baseSettings = { ...settings }
     delete baseSettings.whatsapp_shifts
     delete baseSettings.whatsapp_shifts_enabled
+    delete baseSettings.hero_slides
+    delete baseSettings.hero_slide_interval
 
     try {
       const { data } = await supabase

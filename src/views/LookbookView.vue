@@ -1,159 +1,566 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useCatalogStore } from '../stores/catalogStore'
-import { ArrowRight, Camera, Sparkles } from 'lucide-vue-next'
+import {
+  X,
+  ArrowRight,
+  ArrowLeft,
+  MessageCircle,
+  ShoppingBag,
+  Maximize2,
+  Check,
+} from 'lucide-vue-next'
 
+const router = useRouter()
 const catalogStore = useCatalogStore()
+
+// Curated Editorial Streetwear Archive Frames with Categories & Frame Specs
+const DEFAULT_EDITORIAL_FRAMES = [
+  {
+    id: 'frame-1',
+    url: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=1400&q=85',
+    title: 'Concrete & Midnight Youth',
+    caption: 'Siluet drop-shoulder boxy hoodie berpadu dengan lanskap urban malam hari.',
+    lookCode: 'LOOK 01',
+    category: 'outerwear',
+    categoryLabel: 'HOODIE // FLEECE',
+    spec: 'FRENCH TERRY 400 GSM',
+    verse: 'MATTHEW 5:14',
+    frameNum: '▲ 01A',
+  },
+  {
+    id: 'frame-2',
+    url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1400&q=85',
+    title: 'Genesis Boxy Tee Raw White',
+    caption: 'Potongan santai 16s ultra heavyweight 235+ GSM dengan jahitan kerah kokoh rib 3cm.',
+    lookCode: 'LOOK 02',
+    category: 'tees',
+    categoryLabel: 'BOXY TEE',
+    spec: '16s COMBED COTTON 235+ GSM',
+    verse: 'GENESIS 1:3',
+    frameNum: '▲ 02A',
+  },
+  {
+    id: 'frame-3',
+    url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=1400&q=85',
+    title: 'Scripture Backprint Obsidian',
+    caption: 'Tipografi firman bold di bagian punggung sebagai conversation starter di ruang publik.',
+    lookCode: 'LOOK 03',
+    category: 'tees',
+    categoryLabel: 'GRAPHIC TEE',
+    spec: 'DISCHARGE PLASTISOL SCREENPRINT',
+    verse: 'MATTHEW 28:19-20',
+    frameNum: '▲ 03A',
+  },
+  {
+    id: 'frame-4',
+    url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1400&q=85',
+    title: 'Urban Layering & Texture',
+    caption: 'Eksplorasi layering kontemporer antara t-shirt firman dan outerwear kanvas berkarakter.',
+    lookCode: 'LOOK 04',
+    category: 'outerwear',
+    categoryLabel: 'JACKET // OUTER',
+    spec: 'OVERSIZED STREET FIT // UNISEX',
+    verse: 'ROMANS 1:16',
+    frameNum: '▲ 04A',
+  },
+  {
+    id: 'frame-5',
+    url: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=1400&q=85',
+    title: 'The Narrow Gate Minimalist',
+    caption: 'Embroidered badge minimalis di dada kiri dengan aksen jahitan kontras benang emas.',
+    lookCode: 'LOOK 05',
+    category: 'tees',
+    categoryLabel: 'MINIMAL TEE',
+    spec: 'EMBROIDERY // 16s COTTON',
+    verse: 'MATTHEW 7:14',
+    frameNum: '▲ 05A',
+  },
+  {
+    id: 'frame-6',
+    url: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=1400&q=85',
+    title: 'Living Word Flat-Lay Archive',
+    caption: 'Dokumentasi detail potongan leher, woven tag edisi terbatas, dan tekstur katun tebal.',
+    lookCode: 'LOOK 06',
+    category: 'accessories',
+    categoryLabel: 'FLATLAY // DETAILS',
+    spec: 'PRE-SHRUNK FABRIC // 16s',
+    verse: 'JOHN 1:1',
+    frameNum: '▲ 06A',
+  },
+  {
+    id: 'frame-7',
+    url: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1400&q=85',
+    title: 'Subculture Faith Everyday Gear',
+    caption: 'Pakaian dan aksesori yang menemani aktivitas harian komunitas pemuda gereja di kota.',
+    lookCode: 'LOOK 07',
+    category: 'accessories',
+    categoryLabel: 'HEADWEAR // GEAR',
+    spec: 'HEAVYWEIGHT COTTON // BOX CUT',
+    verse: 'EPHESIANS 6:10',
+    frameNum: '▲ 07A',
+  },
+  {
+    id: 'frame-8',
+    url: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=1400&q=85',
+    title: 'Walking in Truth Monochrome',
+    caption: 'Nuansa monokrom kontras tinggi dengan aksen tipografi firman yang tajam dan tahan lama.',
+    lookCode: 'LOOK 08',
+    category: 'outerwear',
+    categoryLabel: 'KNIT // PULLOVER',
+    spec: '235+ GSM HEAVY COMBED COTTON',
+    verse: 'PSALM 119:105',
+    frameNum: '▲ 08A',
+  },
+]
 
 const currentLookbook = computed(() => {
   return catalogStore.lookbooks?.[0] || {
     title: 'Drop 01 // Genesis & Concrete Youth',
-    season: 'Season 2026 Editorial',
-    description: 'Eksplorasi kontras antara narasi scripture dan lanskap perkotaan kontemporer di bawah terangnya cahaya mentari.',
-    cover_image: '',
+    season: 'Vol.01 // Season 2026 Archive',
+    description: 'Eksplorasi kontras antara narasi scripture dan lanskap urban perkotaan kontemporer.',
     gallery: [],
   }
 })
 
-// Normalisasi foto galeri: mendukung URL string murni maupun format object { url, caption }
-const parsedGallery = computed(() => {
+// Normalisasi foto galeri dengan fallback default frames
+const allFrames = computed(() => {
   const rawList = currentLookbook.value?.gallery || []
-  if (!Array.isArray(rawList) || rawList.length === 0) {
-    if (currentLookbook.value?.cover_image) {
-      return [{ url: currentLookbook.value.cover_image, caption: '' }]
-    }
-    return []
-  }
+  const validDbFrames = []
 
-  return rawList
-    .map((item) => {
-      if (!item) return null
+  if (Array.isArray(rawList) && rawList.length > 0) {
+    rawList.forEach((item, idx) => {
+      if (!item) return
+      let url = ''
+      let caption = ''
       if (typeof item === 'object' && item.url) {
-        return { url: item.url, caption: (item.caption || '').trim() }
-      }
-      if (typeof item === 'string') {
+        url = item.url
+        caption = (item.caption || '').trim()
+      } else if (typeof item === 'string') {
         const trimmed = item.trim()
         if (trimmed.startsWith('{')) {
           try {
             const parsed = JSON.parse(trimmed)
             if (parsed.url) {
-              return { url: parsed.url, caption: (parsed.caption || '').trim() }
+              url = parsed.url
+              caption = (parsed.caption || '').trim()
             }
           } catch (_) {}
         }
-        return { url: trimmed, caption: '' }
+        if (!url) url = trimmed
       }
-      return null
+
+      if (url) {
+        const catList = ['tees', 'outerwear', 'accessories']
+        const assignedCat = catList[idx % 3]
+        const catLabels = {
+          tees: 'BOXY TEE',
+          outerwear: 'OUTERWEAR',
+          accessories: 'AKSESORI // GEAR',
+        }
+        validDbFrames.push({
+          id: `db-frame-${idx}`,
+          url,
+          title: caption || `Editorial Look 0${idx + 1}`,
+          caption: caption || 'Dokumentasi arsip rilisan Bible Talk.',
+          lookCode: `LOOK 0${idx + 1}`,
+          category: assignedCat,
+          categoryLabel: catLabels[assignedCat],
+          spec: '16s COMBED COTTON 235+ GSM',
+          verse: 'MATTHEW 5:14',
+          frameNum: `▲ 0${idx + 1}A`,
+        })
+      }
     })
-    .filter((p) => p && p.url)
+  }
+
+  if (validDbFrames.length >= 6) {
+    return validDbFrames
+  } else if (validDbFrames.length > 0) {
+    const combined = [...validDbFrames]
+    DEFAULT_EDITORIAL_FRAMES.forEach((df) => {
+      if (!combined.some((c) => c.url === df.url)) {
+        combined.push(df)
+      }
+    })
+    return combined.slice(0, 8)
+  }
+
+  return DEFAULT_EDITORIAL_FRAMES
 })
 
-// Pola tata letak editorial puzzle asimetris dinamis (Mobile & Desktop)
-function getGridClasses(idx, total) {
-  if (total === 1) {
-    return 'col-span-2 md:col-span-12 h-[340px] sm:h-[500px] md:h-[620px]'
+// Lightbox Modal
+const activeLightboxIndex = ref(null)
+const isLightboxOpen = computed(() => activeLightboxIndex.value !== null)
+const activeFrame = computed(() => {
+  if (activeLightboxIndex.value === null) return null
+  return allFrames.value[activeLightboxIndex.value] || null
+})
+
+function openLightbox(index) {
+  activeLightboxIndex.value = index
+}
+
+function closeLightbox() {
+  activeLightboxIndex.value = null
+}
+
+function nextLightbox() {
+  if (activeLightboxIndex.value === null) return
+  activeLightboxIndex.value = (activeLightboxIndex.value + 1) % allFrames.value.length
+}
+
+function prevLightbox() {
+  if (activeLightboxIndex.value === null) return
+  activeLightboxIndex.value = (activeLightboxIndex.value - 1 + allFrames.value.length) % allFrames.value.length
+}
+
+function handleKeyDown(e) {
+  if (!isLightboxOpen.value) return
+  if (e.key === 'Escape') closeLightbox()
+  if (e.key === 'ArrowRight') nextLightbox()
+  if (e.key === 'ArrowLeft') prevLightbox()
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+})
+
+function inquiryLookWhatsApp(frame, index) {
+  const activeCP = catalogStore.activeWhatsAppCP
+  const wa = activeCP?.whatsapp_number || catalogStore.storeSettings.whatsapp_number || '6281234567890'
+  const text = encodeURIComponent(
+    `Halo ${activeCP?.name || 'Bible Talk'}, saya tertarik dengan artikel di Lookbook ${frame.lookCode || 'Look ' + (index + 1)}: "${frame.title}". Apakah masih ready stock di katalog?`
+  )
+  window.open(`https://wa.me/${wa}?text=${text}`, '_blank')
+}
+
+// Asymmetric Abstract Puzzle Spans & Dynamic Heights
+function getPuzzleClasses(idx) {
+  const mod = idx % 6
+  if (mod === 0) {
+    // Big Hero Frame (Full width on mobile, 8 cols on desktop)
+    return 'col-span-2 md:col-span-8 min-h-[300px] sm:min-h-[440px] md:min-h-[520px]'
   }
-  if (total === 2) {
-    return 'col-span-1 md:col-span-6 h-[260px] sm:h-[460px] md:h-[560px]'
+  if (mod === 1) {
+    // Tall Portrait Sidekick (1 col on mobile, 4 cols on desktop)
+    return 'col-span-1 md:col-span-4 min-h-[260px] sm:min-h-[440px] md:min-h-[520px]'
   }
-  const pattern = idx % 4
-  if (pattern === 0) return 'col-span-2 md:col-span-8 h-[320px] sm:h-[480px] md:h-[560px]'
-  if (pattern === 1) return 'col-span-1 md:col-span-4 h-[220px] sm:h-[480px] md:h-[560px]'
-  if (pattern === 2) return 'col-span-1 md:col-span-5 h-[220px] sm:h-[440px] md:h-[500px]'
-  return 'col-span-2 md:col-span-7 h-[280px] sm:h-[440px] md:h-[500px]'
+  if (mod === 2) {
+    // Medium Left (1 col on mobile, 5 cols on desktop)
+    return 'col-span-1 md:col-span-5 min-h-[260px] sm:min-h-[380px] md:min-h-[440px]'
+  }
+  if (mod === 3) {
+    // Wide Offset Right (Full width on mobile, 7 cols on desktop)
+    return 'col-span-2 md:col-span-7 min-h-[280px] sm:min-h-[380px] md:min-h-[440px]'
+  }
+  if (mod === 4) {
+    // Half Width Left (1 col on mobile, 6 cols on desktop)
+    return 'col-span-1 md:col-span-6 min-h-[250px] sm:min-h-[360px] md:min-h-[420px]'
+  }
+  // mod === 5: Half Width Right (1 col on mobile, 6 cols on desktop)
+  return 'col-span-1 md:col-span-6 min-h-[250px] sm:min-h-[360px] md:min-h-[420px]'
 }
 </script>
 
 <template>
-  <div class="space-y-20">
+  <div class="relative bg-[#faf8f4] min-h-screen overflow-hidden text-brand-950">
     
-    <!-- LOOKBOOK COVER HERO (LIGHT & BRIGHT EDITORIAL) -->
-    <section class="relative min-h-[72vh] flex items-end justify-start border-b border-brand-300 overflow-hidden bg-brand-100">
-      <img
-        :src="currentLookbook.cover_image"
-        :alt="currentLookbook.title"
-        class="absolute inset-0 w-full h-full object-cover object-center filter contrast-105"
-      />
-      <div class="absolute inset-0 bg-gradient-to-t from-[#fcfcfb] via-[#fcfcfb]/60 to-transparent"></div>
+    <!-- Ambient Halftone Dot Background -->
+    <div class="absolute inset-0 bg-halftone text-brand-950/[0.07] pointer-events-none z-0"></div>
 
-      <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full space-y-4">
-        <span class="inline-flex items-center gap-2 font-mono text-xs text-scripture-bronze bg-white border border-brand-300 px-3.5 py-1.5 rounded-full shadow-sm">
-          <Camera class="w-3.5 h-3.5" />
-          <span>{{ currentLookbook.season || 'EDITORIAL SEASON 2026' }}</span>
-        </span>
-        
-        <h1 class="font-serif font-bold text-4xl sm:text-6xl md:text-7xl text-brand-950 uppercase tracking-tight max-w-3xl">
-          {{ currentLookbook.title }}
-        </h1>
-
-        <p class="text-brand-600 text-sm sm:text-base max-w-xl leading-relaxed font-sans">
-          {{ currentLookbook.description }}
-        </p>
-
-        <div class="pt-2 font-serif italic text-sm text-scripture-bronze">
-          &ldquo;Kamu adalah terang dunia. Kota yang terletak di atas gunung tidak mungkin tersembunyi.&rdquo; — Matius 5:14
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8">
+      
+      <!-- CLEAN & MATCHED EDITORIAL HEADER -->
+      <div class="space-y-4 pb-6 border-b-2 border-brand-950">
+        <!-- Top Editorial Meta -->
+        <div class="flex items-center justify-between flex-wrap gap-2 font-mono text-xs text-brand-950">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 bg-scripture-gold border border-brand-950 inline-block"></span>
+            <span class="font-bold uppercase tracking-widest text-[11px] sm:text-xs">
+              VOL.01 // EDITORIAL ARCHIVE / MATTHEW 5:14
+            </span>
+          </div>
+          <div class="hidden sm:flex items-center gap-3 text-[11px] text-brand-600 font-bold">
+            <span>35MM KODAK TRI-X</span>
+            <span>•</span>
+            <span class="text-brand-950 font-black">08 EDITORIAL LOOKS</span>
+          </div>
         </div>
-      </div>
-    </section>
 
-    <!-- EDITORIAL GALLERY MASONRY -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-      <div class="flex items-center justify-between border-b border-brand-300 pb-4">
-        <h2 class="font-mono text-xs uppercase tracking-widest text-brand-500">
-          EDITORIAL ARCHIVE // HIGH-KEY DOCUMENTARY ({{ parsedGallery.length }} FOTO)
-        </h2>
-        <span class="font-mono text-xs text-scripture-bronze font-semibold">
-          BANDUNG HERITAGE
-        </span>
-      </div>
+        <!-- Main Title & Narrative with Side Zine Scripture Box -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          <!-- Left: Title, Narrative & Accent Tags -->
+          <div class="lg:col-span-8 space-y-3">
+            <h1 class="font-sans font-black text-4xl sm:text-6xl uppercase tracking-tight text-brand-950 leading-none flex items-center flex-wrap gap-3">
+              <span>LOOKBOOK</span>
+              <span class="inline-block bg-brand-950 text-scripture-gold border-2 border-brand-950 px-3.5 py-0.5 shadow-[3px_3px_0px_#153227] text-3xl sm:text-5xl font-black">
+                2026.
+              </span>
+            </h1>
 
-      <!-- Asymmetric Puzzle Grid: 2 Kolom di Mobile, 12 Kolom di Desktop -->
-      <div v-if="parsedGallery.length > 0" class="grid grid-cols-2 md:grid-cols-12 gap-3 sm:gap-6 md:gap-8 items-start">
-        <div
-          v-for="(photo, idx) in parsedGallery"
-          :key="idx"
-          class="group relative overflow-hidden bg-white border border-brand-300 rounded shadow-sm w-full"
-          :class="getGridClasses(idx, parsedGallery.length)"
-        >
-          <img
-            :src="photo.url"
-            :alt="photo.caption || currentLookbook.title || 'Lookbook Frame'"
-            loading="lazy"
-            class="w-full h-full object-cover object-center filter contrast-105 hover:scale-105 transition-all duration-700"
-          />
-          <!-- Hanya tampilkan caption jika memang ditulis oleh admin saat upload -->
-          <div
-            v-if="photo.caption"
-            class="absolute bottom-4 left-4 bg-white/95 backdrop-blur-xs px-3.5 py-1.5 rounded font-mono text-[10px] sm:text-xs tracking-wider text-brand-900 border border-brand-300 shadow-sm"
-          >
-            {{ photo.caption }}
+            <p class="text-sm sm:text-base text-brand-800 font-sans leading-relaxed max-w-2xl">
+              Dokumentasi editorial seluruh rilisan pakaian, outerwear, dan aksesori bernuansa firman. Menghadirkan keseimbangan antara pesan kebenaran abadi dan estetika streetwear kontemporer di lanskap perkotaan.
+            </p>
+
+            <!-- Tidy Editorial Detail Badges (Variasi tanpa kategori) -->
+            <div class="flex items-center gap-2 flex-wrap pt-1 font-mono text-[11px]">
+              <span class="px-2.5 py-1 bg-brand-100 text-brand-950 border border-brand-950/40 font-bold uppercase">
+                ✦ 35mm Analog
+              </span>
+              <span class="px-2.5 py-1 bg-brand-100 text-brand-950 border border-brand-950/40 font-bold uppercase">
+                ✦ Heavyweight 16s & Fleece
+              </span>
+              <span class="px-2.5 py-1 bg-brand-100 text-brand-950 border border-brand-950/40 font-bold uppercase">
+                ✦ Urban Landscape
+              </span>
+            </div>
+          </div>
+
+          <!-- Right: Compact Scripture & Catalog Card -->
+          <div class="lg:col-span-4 flex flex-col justify-between gap-3 p-4 bg-white border-2 border-brand-950 shadow-[3px_3px_0px_#153227]">
+            <div class="space-y-1 font-mono">
+              <div class="flex items-center justify-between text-[10px] text-brand-500 uppercase font-bold pb-1 border-b border-brand-200">
+                <span>MATTHEW 5:14</span>
+                <span class="text-brand-950">VOL.01 // 2026</span>
+              </div>
+              <p class="text-xs text-brand-900 font-serif italic leading-snug pt-1">
+                "Kamu adalah terang dunia. Kota yang terletak di atas gunung tidak mungkin tersembunyi."
+              </p>
+            </div>
+
+            <router-link
+              to="/catalog"
+              class="w-full py-2.5 px-4 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono text-xs uppercase font-black tracking-wider border-2 border-brand-950 shadow-[2px_2px_0px_#153227] active:translate-x-0.5 active:translate-y-0.5 transition-all flex items-center justify-between"
+            >
+              <div class="flex items-center gap-2">
+                <ShoppingBag class="w-3.5 h-3.5" />
+                <span>Lihat Katalog</span>
+              </div>
+              <ArrowRight class="w-3.5 h-3.5" />
+            </router-link>
           </div>
         </div>
       </div>
 
-      <!-- Empty State jika belum ada foto galeri -->
-      <div v-else class="p-16 border border-dashed border-brand-300 rounded text-center font-mono text-xs text-brand-500">
-        Belum ada foto galeri lookbook yang diunggah. Tambahkan melalui Dashboard Admin.
+      <!-- ABSTRACT PUZZLE EDITORIAL GALLERY (Asymmetric Scrapbook Spreads) -->
+      <div v-if="allFrames.length === 0" class="p-12 text-center bg-white border-2 border-dashed border-brand-950/40 font-mono text-xs text-brand-500">
+        Tidak ada frame foto untuk lookbook ini.
+      </div>
+      <div v-else class="grid grid-cols-2 md:grid-cols-12 gap-3.5 sm:gap-6 md:gap-8 items-stretch">
+        <div
+          v-for="(frame, idx) in allFrames"
+          :key="frame.id"
+          class="group relative flex flex-col bg-[#fdfcfa] zine-border zine-shadow zine-shadow-hover overflow-hidden cursor-pointer select-none transition-all duration-200"
+          :class="getPuzzleClasses(idx)"
+          @click="openLightbox(idx)"
+        >
+          <!-- Masking Tape on select cards -->
+          <div
+            v-if="idx % 2 === 0"
+            class="tape-strip hidden sm:block -top-2.5 right-8"
+          ></div>
+
+          <!-- Photo Container filling full height -->
+          <div class="relative w-full h-full bg-brand-900/10 overflow-hidden">
+            <!-- Halftone Dot Overlay on Hover -->
+            <div class="absolute inset-0 halftone-screen opacity-0 group-hover:opacity-40 transition-opacity duration-300 z-10 pointer-events-none"></div>
+
+            <img
+              :src="frame.url"
+              :alt="frame.title"
+              loading="lazy"
+              class="w-full h-full object-cover object-center filter contrast-105 group-hover:scale-105 transition-transform duration-700 ease-out"
+            />
+
+            <!-- Top Left: Look Tag -->
+            <div class="absolute top-2.5 left-2.5 z-20 flex items-center gap-1">
+              <span class="px-2 py-0.5 bg-brand-950 text-scripture-gold font-mono text-[9px] sm:text-[10px] uppercase font-black tracking-widest border border-brand-950 shadow-[2px_2px_0px_#153227]">
+                {{ frame.lookCode }}
+              </span>
+            </div>
+
+            <!-- Choppy Corner Cut Accent on Top Right -->
+            <div class="absolute top-0 right-0 w-6 h-6 bg-brand-950 [clip-path:polygon(100%_0,0_0,100%_100%)] z-10 opacity-90 group-hover:opacity-100 transition-opacity"></div>
+
+            <!-- Bottom Floating Caption (Streetwear Zine Tape Tag) -->
+            <div class="absolute bottom-2.5 inset-x-2.5 sm:bottom-3 sm:inset-x-3 bg-white/95 backdrop-blur-xs p-2.5 sm:p-3 zine-border shadow-[2px_2px_0px_#153227] flex flex-col font-mono z-20 gap-1">
+              <div class="flex items-center justify-between gap-2 border-b border-brand-100 pb-1">
+                <span class="text-[8px] sm:text-[9px] text-brand-600 uppercase tracking-widest font-bold truncate">
+                  {{ frame.spec }}
+                </span>
+                <span class="shrink-0 text-[8px] sm:text-[9px] text-brand-950 font-black uppercase border border-brand-950/30 px-1 py-0.2 bg-brand-100">
+                  {{ frame.verse }}
+                </span>
+              </div>
+
+              <div class="flex items-center justify-between gap-2 pt-0.5">
+                <h3 class="font-sans font-black text-xs sm:text-sm text-brand-950 group-hover:text-scripture-bronze truncate transition-colors leading-tight">
+                  {{ frame.title }}
+                </h3>
+                <span class="text-[9px] text-brand-500 font-bold uppercase shrink-0 flex items-center gap-0.5 group-hover:text-brand-950 transition-colors">
+                  <span>Lihat</span>
+                  <ArrowRight class="w-2.5 h-2.5" />
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Bottom Call To Action to Catalog -->
-      <div class="pt-16 pb-8 text-center space-y-4 border-t border-brand-300">
-        <h3 class="font-serif font-bold text-2xl sm:text-3xl uppercase text-brand-950">
-          Tertarik dengan Artikel di Lookbook Ini?
-        </h3>
-        <p class="text-sm text-brand-600 font-sans max-w-md mx-auto">
-          Periksa seluruh ketersediaan ukuran dan pesan pakaian favorit Anda langsung dari katalog.
-        </p>
+      <!-- CLEAN BOTTOM CTA -->
+      <div class="border-t-2 border-brand-950 pt-8 pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="space-y-0.5 text-center sm:text-left font-mono">
+          <div class="text-xs font-black uppercase tracking-wider text-brand-950">
+            Tertarik dengan artikel di lookbook ini?
+          </div>
+          <div class="text-[11px] text-brand-600">
+            Seluruh koleksi tersedia dengan stok terbatas di katalog resmi.
+          </div>
+        </div>
+
         <router-link
           to="/catalog"
-          class="inline-flex items-center gap-2 px-8 py-3.5 bg-brand-900 hover:bg-brand-800 text-white font-mono text-xs uppercase font-semibold tracking-widest rounded shadow transition-colors"
+          class="px-6 py-2.5 bg-brand-950 text-scripture-gold font-mono text-xs font-black uppercase zine-border zine-shadow-sm hover:bg-brand-900 transition-all inline-flex items-center gap-2"
         >
           <span>Eksplor Katalog Pakaian</span>
           <ArrowRight class="w-4 h-4" />
         </router-link>
       </div>
 
-    </section>
+    </div>
+
+    <!-- CLEAN INTERACTIVE LIGHTBOX MODAL -->
+    <div
+      v-if="isLightboxOpen && activeFrame"
+      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xs select-none"
+      @click.self="closeLightbox"
+    >
+      <div class="relative w-full max-w-4xl bg-[#faf8f4] zine-border shadow-[6px_6px_0px_#0c1c16] overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <!-- Header Bar -->
+        <div class="flex items-center justify-between px-4 py-2.5 bg-brand-950 text-scripture-gold border-b-2 border-brand-950 font-mono text-xs font-bold uppercase">
+          <div class="flex items-center gap-2">
+            <span class="px-1.5 py-0.5 bg-scripture-gold text-brand-950 font-black text-[10px]">
+              {{ activeFrame.lookCode }}
+            </span>
+            <span>FRAME {{ (activeLightboxIndex + 1).toString().padStart(2, '0') }} / {{ allFrames.length.toString().padStart(2, '0') }}</span>
+          </div>
+
+          <button
+            @click="closeLightbox"
+            class="p-1 bg-white text-brand-950 hover:bg-rose-500 hover:text-white transition-colors border border-brand-950"
+            title="Tutup (Esc)"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-12">
+          <!-- Image -->
+          <div class="md:col-span-7 bg-brand-950 flex items-center justify-center relative min-h-[260px] sm:min-h-[420px] p-3">
+            <img
+              :src="activeFrame.url"
+              :alt="activeFrame.title"
+              class="max-w-full max-h-[60vh] object-contain border border-white/20"
+            />
+            
+            <button
+              @click="prevLightbox"
+              class="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-[#faf8f4] text-brand-950 zine-border shadow-[2px_2px_0px_#000] hover:bg-scripture-gold transition-colors"
+            >
+              <ArrowLeft class="w-4 h-4" />
+            </button>
+
+            <button
+              @click="nextLightbox"
+              class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-[#faf8f4] text-brand-950 zine-border shadow-[2px_2px_0px_#000] hover:bg-scripture-gold transition-colors"
+            >
+              <ArrowRight class="w-4 h-4" />
+            </button>
+          </div>
+
+          <!-- Info -->
+          <div class="md:col-span-5 p-5 flex flex-col justify-between gap-5 bg-[#faf8f4] border-t-2 md:border-t-0 md:border-l-2 border-brand-950 font-mono">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between text-[10px] text-brand-600 uppercase">
+                <span class="font-bold text-brand-950">EDITORIAL SPEC</span>
+                <span class="px-1.5 py-0.5 bg-brand-200 text-brand-900 font-bold">{{ activeFrame.verse }}</span>
+              </div>
+
+              <h2 class="font-sans font-black text-xl uppercase tracking-tight text-brand-950 leading-tight">
+                {{ activeFrame.title }}
+              </h2>
+
+              <p class="text-xs text-brand-800 font-sans leading-relaxed">
+                {{ activeFrame.caption }}
+              </p>
+
+              <div class="p-2.5 bg-white zine-border space-y-1.5 text-[11px] text-brand-900">
+                <div class="flex items-center gap-2">
+                  <Check class="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <span class="font-bold">{{ activeFrame.spec }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <Check class="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <span>Boxy Drop-Shoulder Silhouette</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2 pt-2 border-t-2 border-brand-950 text-xs">
+              <router-link
+                to="/catalog"
+                @click="closeLightbox"
+                class="w-full py-2.5 bg-brand-950 text-scripture-gold font-black uppercase zine-border zine-shadow-sm hover:bg-brand-900 transition-all flex items-center justify-center gap-2"
+              >
+                <ShoppingBag class="w-4 h-4" />
+                <span>Lihat di Katalog</span>
+              </router-link>
+
+              <button
+                @click="inquiryLookWhatsApp(activeFrame, activeLightboxIndex)"
+                class="w-full py-2 bg-scripture-gold text-brand-950 font-bold uppercase zine-border zine-shadow-sm hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center gap-2"
+              >
+                <MessageCircle class="w-4 h-4" />
+                <span>Tanya via WhatsApp</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BOTTOM RUNNING MARQUEE TICKER TAPE -->
+    <div class="border-t-2 border-brand-950 bg-brand-950 text-scripture-gold py-2 overflow-hidden select-none font-mono text-xs uppercase tracking-widest font-black">
+      <div class="animate-marquee flex items-center gap-8">
+        <span class="flex items-center gap-3">
+          <span>✦ BIBLE TALK EDITORIAL</span>
+          <span class="text-white">/</span>
+          <span>VOL.01 ARCHIVE</span>
+          <span class="text-white">/</span>
+          <span class="text-white">MADE TO WEAR, MADE TO REMIND</span>
+          <span class="text-white">/</span>
+          <span>16s HEAVYWEIGHT COTTON 235+ GSM</span>
+          <span class="text-white">/</span>
+          <span>MATTHEW 5:14</span>
+        </span>
+        <span class="flex items-center gap-3">
+          <span>✦ BIBLE TALK EDITORIAL</span>
+          <span class="text-white">/</span>
+          <span>VOL.01 ARCHIVE</span>
+          <span class="text-white">/</span>
+          <span class="text-white">MADE TO WEAR, MADE TO REMIND</span>
+        </span>
+      </div>
+    </div>
 
   </div>
 </template>

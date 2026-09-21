@@ -32,3 +32,100 @@
     background: #b0aba0;
   }
 }
+
+/* =======================================================
+   STREETWEAR ZINE / HALFTONE & CHOPPY CROPS DESIGN SYSTEM
+   ======================================================= */
+
+/* Halftone Dot Patterns */
+.bg-halftone {
+  background-image: radial-gradient(currentColor 1.2px, transparent 1.2px);
+  background-size: 10px 10px;
+}
+
+.bg-halftone-dense {
+  background-image: radial-gradient(currentColor 1.2px, transparent 1.2px);
+  background-size: 6px 6px;
+}
+
+.halftone-screen {
+  background-image: radial-gradient(rgba(21, 50, 39, 0.45) 1.2px, transparent 1.2px);
+  background-size: 5px 5px;
+  mix-blend-mode: multiply;
+}
+
+/* Choppy Cuts & Asymmetrical Crops */
+.choppy-crop-tr {
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+}
+
+.choppy-crop-bl {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+}
+
+.choppy-crop-both {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+/* Physical Masking Tape Effect */
+.tape-strip {
+  position: absolute;
+  height: 18px;
+  width: 64px;
+  background: rgba(246, 237, 218, 0.88);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  border-left: 1.5px dashed rgba(160, 140, 110, 0.5);
+  border-right: 1.5px dashed rgba(160, 140, 110, 0.5);
+  backdrop-filter: blur(1.5px);
+  z-index: 25;
+  pointer-events: none;
+}
+
+/* Brutalist Zine Shadows & Tactile Press */
+.zine-border {
+  border: 2px solid #153227;
+}
+
+.zine-shadow {
+  box-shadow: 4px 4px 0px 0px #153227;
+}
+
+.zine-shadow-sm {
+  box-shadow: 2.5px 2.5px 0px 0px #153227;
+}
+
+.zine-shadow-gold {
+  box-shadow: 4px 4px 0px 0px #f5b025;
+}
+
+.zine-shadow-hover {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zine-shadow-hover:hover {
+  box-shadow: 6px 6px 0px 0px #153227;
+  transform: translate(-2px, -2px);
+}
+
+.zine-btn-active:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #153227;
+}
+
+/* Infinite Running Marquee Tape */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 24s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+

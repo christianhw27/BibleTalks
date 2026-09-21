@@ -19,12 +19,22 @@ export const useCatalogStore = defineStore('catalog', () => {
   const bundles = ref([])
   const storeSettings = ref({
     brand_name: 'BIBLE TALK',
-    tagline: 'Subculture & Contemporary Streetwear',
+    tagline: 'Made to Wear, Made to Remind',
     whatsapp_number: '',
     whatsapp_shifts_enabled: true,
     whatsapp_shifts: DEFAULT_SHIFTS,
     announcement_bar: 'FREE SHIPPING SPECIAL DROP • WORLDWIDE DELIVERY AVAILABLE',
     address: 'Kabupaten Ngawi, Jawa Timur - Indonesia',
+    hero_slides: [
+      {
+        id: 'slide-1',
+        image: '/hero-product.jpg',
+        badge: '★ 16S ULTRA HEAVY',
+        caption: 'BIBLE TALK ARCHIVE // 2026',
+        tag: 'REF. BT-HERO-01'
+      }
+    ],
+    hero_slide_interval: 4,
   })
 
   // Dynamic active WhatsApp Contact Person resolved by WIB (UTC+7)

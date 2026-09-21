@@ -92,130 +92,164 @@ function clearFilters() {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+  <div class="relative bg-[#faf8f4] min-h-screen overflow-hidden">
     
-    <!-- PAGE HEADER -->
-    <div class="space-y-3 border-b border-brand-300 pb-8">
-      <div class="flex items-center gap-2 text-xs font-mono text-brand-500 uppercase tracking-widest">
-        <router-link to="/" class="hover:text-brand-800">Home</router-link>
-        <span>/</span>
-        <span class="text-scripture-bronze font-medium">Katalog Pakaian</span>
-      </div>
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <!-- Ambient Halftone Dot Background Pattern -->
+    <div class="absolute inset-0 bg-halftone text-brand-950/[0.07] pointer-events-none z-0"></div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-5 sm:space-y-6">
+      
+      <!-- SLEEK COMPACT HEADER -->
+      <div class="flex items-center justify-between pb-3 border-b-2 border-brand-950">
         <div>
-          <h1 class="font-serif font-bold text-3xl sm:text-5xl text-brand-950 uppercase tracking-tight">
-            Katalog Rilisan
+          <h1 class="font-sans font-black text-2xl sm:text-4xl text-brand-950 uppercase tracking-tight leading-none">
+            KATALOG
+            <span class="inline-block bg-brand-950 text-scripture-gold px-2 sm:px-2.5 py-0.5 ml-1 -rotate-1 text-xl sm:text-3xl font-black shadow-[2px_2px_0px_#153227]">
+              RILISAN.
+            </span>
           </h1>
-          <p class="text-sm text-brand-600 mt-1 font-sans">
-            Koleksi t-shirt heavyweight, outerwear katun tebal, kargo, dan aksesoris berpesan firman.
+          <p class="text-xs sm:text-sm text-brand-700 font-sans mt-1.5 max-w-lg leading-relaxed">
+            Eksplorasi seluruh rilisan pakaian, outerwear, dan aksesori bernuansa firman—dibuat untuk dipakai dan mengingatkan.
           </p>
         </div>
-        <span class="font-mono text-xs text-brand-600 bg-white border border-brand-300 px-3.5 py-1.5 rounded shadow-sm self-start md:self-auto">
-          TOTAL: {{ displayedProducts.length }} ARTIKEL TERSEDIA
-        </span>
-      </div>
-    </div>
-
-    <!-- FILTER & CONTROLS BAR -->
-    <div class="space-y-4">
-      
-      <!-- Categories Horizontal Scroll Tabs -->
-      <div class="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none font-mono text-xs">
-        <button
-          @click="selectCategory(null)"
-          class="px-4 py-2.5 rounded uppercase whitespace-nowrap transition-all border font-medium shadow-sm"
-          :class="!catalogStore.activeCategory ? 'bg-brand-900 text-white border-brand-900 font-bold' : 'bg-white text-brand-700 border-brand-300 hover:border-brand-400 hover:text-brand-900'"
-        >
-          Semua ({{ catalogStore.products.length }})
-        </button>
-
-        <button
-          v-for="cat in categoriesWithProducts"
-          :key="cat.id"
-          @click="selectCategory(cat.slug)"
-          class="px-4 py-2.5 rounded uppercase whitespace-nowrap transition-all border font-medium shadow-sm"
-          :class="catalogStore.activeCategory === cat.slug ? 'bg-brand-900 text-white border-brand-900 font-bold' : 'bg-white text-brand-700 border-brand-300 hover:border-brand-400 hover:text-brand-900'"
-        >
-          {{ cat.name }}
-        </button>
       </div>
 
-      <!-- Search, Stock Toggle, & Sort Row -->
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+      <!-- STREAMLINED CATEGORY TABS & CONTROLS -->
+      <div class="space-y-3">
         
-        <!-- Live Search Input -->
-        <div class="relative flex-grow max-w-md">
-          <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-400" />
-          <input
-            v-model="catalogStore.searchQuery"
-            type="text"
-            placeholder="Cari artikel pakaian atau tema ayat..."
-            class="w-full pl-10 pr-9 py-2.5 bg-white border border-brand-300 rounded text-sm text-brand-900 placeholder-brand-400 focus:outline-none focus:border-brand-600 font-sans shadow-sm"
-          />
+        <!-- Category Chips -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none font-mono text-xs">
           <button
-            v-if="catalogStore.searchQuery"
-            @click="catalogStore.searchQuery = ''"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-brand-400 hover:text-brand-700"
+            @click="selectCategory(null)"
+            class="px-3 py-1.5 uppercase whitespace-nowrap transition-all border border-brand-950 font-bold text-[11px] sm:text-xs"
+            :class="!catalogStore.activeCategory ? 'bg-brand-950 text-scripture-gold font-black shadow-[2px_2px_0px_#153227]' : 'bg-white text-brand-950 hover:bg-brand-100'"
           >
-            <X class="w-4 h-4" />
+            Semua ({{ catalogStore.products.length }})
+          </button>
+
+          <button
+            v-for="cat in categoriesWithProducts"
+            :key="cat.id"
+            @click="selectCategory(cat.slug)"
+            class="px-3 py-1.5 uppercase whitespace-nowrap transition-all border border-brand-950 font-bold text-[11px] sm:text-xs"
+            :class="catalogStore.activeCategory === cat.slug ? 'bg-brand-950 text-scripture-gold font-black shadow-[2px_2px_0px_#153227]' : 'bg-white text-brand-950 hover:bg-brand-100'"
+          >
+            {{ cat.name }}
           </button>
         </div>
 
-        <!-- Filter Options -->
-        <div class="flex items-center gap-2.5 self-end sm:self-auto font-mono text-xs">
-          <!-- Ready Stock Only Checkbox -->
-          <label class="flex items-center gap-2 cursor-pointer bg-white border border-brand-300 px-3.5 py-2.5 rounded hover:border-brand-400 select-none shadow-sm">
+        <!-- Search & Quick Filters (Unified Inline Row) -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <!-- Live Search Input -->
+          <div class="relative flex-grow">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-500" />
             <input
-              type="checkbox"
-              v-model="onlyInStock"
-              class="w-3.5 h-3.5 accent-brand-900 rounded"
+              v-model="catalogStore.searchQuery"
+              type="text"
+              placeholder="Cari artikel pakaian..."
+              class="w-full pl-9 pr-8 py-2 bg-white border border-brand-950 text-xs sm:text-sm text-brand-950 placeholder-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-950 font-mono shadow-[2px_2px_0px_#153227]"
             />
-            <span class="text-brand-700">Ready Saja</span>
-          </label>
-
-          <!-- Sort Select -->
-          <div class="relative">
-            <select
-              v-model="sortOption"
-              class="appearance-none bg-white border border-brand-300 text-brand-800 py-2.5 pl-3.5 pr-8 rounded focus:outline-none focus:border-brand-600 font-mono text-xs cursor-pointer shadow-sm"
+            <button
+              v-if="catalogStore.searchQuery"
+              @click="catalogStore.searchQuery = ''"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-500 hover:text-brand-950 p-0.5"
+              title="Hapus pencarian"
             >
-              <option value="newest">Rilis Terbaru</option>
-              <option value="price_asc">Harga Terendah</option>
-              <option value="price_desc">Harga Tertinggi</option>
-            </select>
-            <ArrowUpDown class="w-3 h-3 text-brand-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <X class="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <!-- Inline Filters (Ready Stock & Sort) -->
+          <div class="flex items-center gap-2 font-mono text-xs shrink-0">
+            <!-- Ready Stock Only Checkbox -->
+            <label class="flex items-center gap-1.5 cursor-pointer bg-white border border-brand-950 px-3 py-2 hover:bg-brand-50 select-none transition-colors shadow-[2px_2px_0px_#153227]">
+              <input
+                type="checkbox"
+                v-model="onlyInStock"
+                class="w-3.5 h-3.5 accent-brand-950 rounded-none cursor-pointer"
+              />
+              <span class="text-brand-950 font-bold uppercase tracking-wider text-[11px]">Ready Stock</span>
+            </label>
+
+            <!-- Sort Select -->
+            <div class="relative">
+              <select
+                v-model="sortOption"
+                class="appearance-none bg-white border border-brand-950 text-brand-950 font-bold uppercase tracking-wider py-2 pl-3 pr-7 focus:outline-none cursor-pointer text-[11px] shadow-[2px_2px_0px_#153227]"
+              >
+                <option value="newest">Terbaru</option>
+                <option value="price_asc">Termurah</option>
+                <option value="price_desc">Termahal</option>
+              </select>
+              <ArrowUpDown class="w-3 h-3 text-brand-950 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
         </div>
 
       </div>
 
-    </div>
-
-    <!-- PRODUCTS GRID -->
-    <div>
-      <!-- Empty State -->
-      <div
-        v-if="displayedProducts.length === 0"
-        class="py-20 text-center border border-dashed border-brand-300 rounded bg-white space-y-4 shadow-sm"
-      >
-        <p class="text-brand-600 font-sans text-base">
-          Tidak ada pakaian yang sesuai dengan kriteria filter pencarian.
-        </p>
-        <button
-          @click="clearFilters"
-          class="px-5 py-2.5 font-mono text-xs bg-brand-900 text-white font-semibold uppercase rounded hover:bg-brand-800"
+      <!-- PRODUCTS GRID -->
+      <div class="pt-2">
+        <!-- Empty State (Tactile Zine Card Style) -->
+        <div
+          v-if="displayedProducts.length === 0"
+          class="relative py-16 px-6 text-center bg-white zine-border zine-shadow max-w-lg mx-auto space-y-4 my-8"
         >
-          Reset Semua Filter
-        </button>
+          <div class="tape-strip -top-3 left-1/2 -translate-x-1/2 rotate-1"></div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-brand-100 text-brand-800 font-mono text-[10px] uppercase font-bold tracking-widest">
+            <span>[ 0 ARTIKEL DITEMUKAN ]</span>
+          </div>
+          <h3 class="font-sans font-black text-xl sm:text-2xl text-brand-950 uppercase tracking-tight">
+            Tidak Ada Pakaian Sesuai Kriteria
+          </h3>
+          <p class="text-xs text-brand-700 font-sans max-w-sm mx-auto leading-relaxed">
+            Coba ubah kata kunci pencarian atau reset filter kategori untuk melihat seluruh rilisan koleksi.
+          </p>
+          <div class="pt-2">
+            <button
+              @click="clearFilters"
+              class="px-5 py-2.5 font-mono text-xs bg-brand-950 text-scripture-gold font-black uppercase zine-border zine-shadow-sm zine-btn-active hover:bg-brand-900 transition-all inline-flex items-center gap-2"
+            >
+              <span>Reset Semua Filter</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid Cards (Choppy Crops Streetwear Product Cards) -->
+        <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+          <ProductCard
+            v-for="product in displayedProducts"
+            :key="product.id"
+            :product="product"
+          />
+        </div>
       </div>
 
-      <!-- Grid Cards -->
-      <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
-        <ProductCard
-          v-for="product in displayedProducts"
-          :key="product.id"
-          :product="product"
-        />
+    </div>
+
+    <!-- RUNNING STREETWEAR TICKER TAPE AT BOTTOM OF CATALOG -->
+    <div class="mt-16 border-t-2 border-brand-950 bg-brand-950 text-scripture-gold py-2.5 overflow-hidden select-none font-mono text-xs uppercase tracking-widest font-black">
+      <div class="animate-marquee flex items-center gap-8">
+        <span class="flex items-center gap-3">
+          <span>✦ BIBLE TALK ARCHIVE</span>
+          <span class="text-white">/</span>
+          <span class="text-white">MADE TO WEAR, MADE TO REMIND</span>
+          <span class="text-white">/</span>
+          <span>HEAVYWEIGHT 16s COTTON</span>
+          <span class="text-white">/</span>
+          <span>MATTHEW 28:19-20</span>
+          <span class="text-white">/</span>
+          <span>BOXY FIT</span>
+          <span class="text-white">/</span>
+          <span>ORIGINAL FAITH APPAREL</span>
+        </span>
+        <span class="flex items-center gap-3">
+          <span>✦ BIBLE TALK ARCHIVE</span>
+          <span class="text-white">/</span>
+          <span class="text-white">MADE TO WEAR, MADE TO REMIND</span>
+          <span class="text-white">/</span>
+          <span>HEAVYWEIGHT 16s COTTON</span>
+        </span>
       </div>
     </div>
 
