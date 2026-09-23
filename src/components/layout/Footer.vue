@@ -16,13 +16,13 @@ const currentYear = new Date().getFullYear()
 
       <div class="relative z-10 max-w-3xl mx-auto space-y-2">
         <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-950 text-scripture-gold font-mono text-[10px] uppercase font-black tracking-widest border border-brand-950 mb-1">
-          <span>✦ THE GREAT COMMISSION</span>
+          <span>✦ SPREAD THE GOSPEL</span>
         </div>
         <p class="font-sans font-black text-base sm:text-xl md:text-2xl text-brand-950 uppercase tracking-tight leading-snug">
-          &ldquo;Karena itu pergilah, jadikanlah semua bangsa murid-Ku dan baptislah mereka dalam nama Bapa dan Anak dan Roh Kudus... Dan ketahuilah, Aku menyertai kamu senantiasa sampai kepada akhir zaman.&rdquo;
+          &ldquo;Oleh karena itu, kami adalah duta-duta Kristus, seolah-olah Allah yang menyampaikan seruan-Nya melalui kami.&rdquo;
         </p>
         <span class="font-mono text-xs text-brand-700 uppercase tracking-widest font-bold block pt-1">
-          MATIUS 28:19-20 // BIBLE TALK FOUNDATION
+          2 KORINTUS 5:20 // BIBLE TALK FOUNDATION
         </span>
       </div>
     </div>
@@ -41,7 +41,7 @@ const currentYear = new Date().getFullYear()
             />
           </div>
           <p class="text-xs sm:text-sm text-brand-800 leading-relaxed max-w-md font-sans font-medium">
-            {{ catalogStore.storeSettings.about || 'Bible Talk adalah entitas pakaian bernuansa scripture yang menyatukan pesan firman, potongan modern boxy fitting, dan material katun 16s berkualitas tinggi untuk memuliakan nama-Nya.' }}
+            {{ catalogStore.storeSettings.about || 'More than just fabric. Its how His Word speaks. Alkitab bukan teks yang usang di atas rak, melainkan Firman yang hidup dan berkuasa. Melalui Bible Talk, kami ingin membawa firman itu melangkah ke kampus, tongkrongan, dan jalanan, menjadi pengingat identitas di saat dunia menuntutmu untuk menyerah pada standar lain.' }}
           </p>
           <div class="pt-2 font-mono text-xs text-brand-700 font-bold flex items-center gap-2">
             <span class="w-2 h-2 bg-scripture-gold border border-brand-950"></span>

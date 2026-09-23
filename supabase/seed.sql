@@ -153,7 +153,7 @@ values
     'general',
     'BIBLE TALK',
     'Subculture & Contemporary Streetwear',
-    'Bible Talk adalah entitas clothing independen yang memadukan estetika brutalist streetwear, potongan modern boxy fitting, dan pesan naratif yang mendalam.',
+    'More than just fabric. Its how His Word speaks. Alkitab bukan teks yang usang di atas rak, melainkan Firman yang hidup dan berkuasa. Melalui Bible Talk, kami ingin membawa firman itu melangkah ke kampus, tongkrongan, dan jalanan, menjadi pengingat identitas di saat dunia menuntutmu untuk menyerah pada standar lain.',
     '6281234567890',
     'https://instagram.com/bibletalk.co',
     'https://tiktok.com/@bibletalk',
