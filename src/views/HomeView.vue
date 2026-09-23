@@ -262,8 +262,7 @@ watch(
           <div class="hidden sm:inline-flex items-center gap-2 px-3 py-1 bg-white zine-border zine-shadow-sm font-mono text-xs text-brand-950 uppercase tracking-wider mb-5">
             <span class="w-2 h-2 bg-scripture-gold border border-brand-950"></span>
             <span class="font-bold">BIBLETALK.MERCH</span>
-            <span class="text-brand-400">|</span>
-            <span class="font-semibold text-brand-800">MATTHEW 28:19-20</span>
+
           </div>
 
           <!-- MOBILE HERO HEADLINE: FIGMA CASCADE DIAGONAL STAIRCASE -->
