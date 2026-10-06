@@ -399,7 +399,7 @@ watch(
                   <img
                     :src="slide.image"
                     :alt="slide.caption || 'Bible Talks Hero Garment'"
-                    class="w-full h-full object-cover object-center contrast-[1.03] transition-transform duration-700 ease-out group-hover/hero-frame:scale-105"
+                    class="w-full h-full object-fill object-center contrast-[1.03] transition-transform duration-700 ease-out group-hover/hero-frame:scale-105"
                   />
                 </div>
 

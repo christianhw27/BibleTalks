@@ -257,13 +257,6 @@ const relatedProducts = computed(() => {
               <span class="text-brand-950 uppercase tracking-wider font-bold">
                 Pilih Ukuran:
               </span>
-              <button
-                @click="isSizeChartOpen = true"
-                class="text-brand-800 hover:text-brand-950 underline inline-flex items-center gap-1 font-semibold text-[11px]"
-              >
-                <Ruler class="w-3.5 h-3.5" />
-                <span>Panduan Size Chart</span>
-              </button>
             </div>
 
             <!-- Sizes Grid -->
