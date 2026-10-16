@@ -128,13 +128,13 @@ const subtotal = computed(() => {
 })
 
 const productImage = computed(() => {
-  if (props.product?.images && props.product.images.length > 0) {
+  if (props.product?.images && props.product.images.length > 0 && props.product.images[0]) {
     return props.product.images[0]
   }
   if (props.product?.image) {
     return props.product.image
   }
-  return 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80'
+  return null
 })
 
 // Quantity controls
@@ -322,12 +322,14 @@ function submitOrder() {
 
           <!-- Product Summary Preview -->
           <div v-if="product" class="flex gap-3 p-3 bg-white border-2 border-brand-950 shadow-[2px_2px_0px_#153227]">
-            <div class="w-16 h-20 bg-brand-100 overflow-hidden shrink-0 border border-brand-950">
+            <div class="w-16 h-20 bg-brand-100 overflow-hidden shrink-0 border border-brand-950 flex items-center justify-center">
               <img
+                v-if="productImage"
                 :src="productImage"
                 :alt="product.title"
                 class="w-full h-full object-cover object-center"
               />
+              <span v-else class="text-[9px] font-mono text-brand-400 font-bold uppercase">No Img</span>
             </div>
 
             <div class="flex flex-col justify-between flex-grow py-0.5">

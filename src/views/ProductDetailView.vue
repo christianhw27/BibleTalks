@@ -15,6 +15,7 @@ import {
   Check,
   X,
   ShoppingBag,
+  Camera,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -169,10 +170,16 @@ const relatedProducts = computed(() => {
 
             <!-- Main Image -->
             <img
-              :src="product.images?.[activeImageIndex] || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80'"
+              v-if="product.images?.[activeImageIndex]"
+              :src="product.images[activeImageIndex]"
               :alt="product.title"
               class="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
             />
+            <div v-else class="w-full h-full flex flex-col items-center justify-center bg-brand-100 text-brand-400 font-mono text-xs uppercase p-8 text-center">
+              <Camera class="w-10 h-10 stroke-[1.5] mb-2 opacity-40 text-brand-950" />
+              <span class="font-bold text-brand-950">Foto Produk</span>
+              <span class="text-[10px] text-brand-500 mt-0.5">Belum ada foto yang diunggah</span>
+            </div>
 
             <!-- Single Sharp Status Badge (Top Left) -->
             <div class="absolute top-3 left-3 z-20">

@@ -54,6 +54,7 @@ import {
   MessageCircle,
   Phone,
   Radio,
+  ArrowRight,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -270,9 +271,33 @@ const lookbookForm = ref({
   description: '',
   cover_image: '',
   gallery: [],
+  banner_badge: '✦ 35MM EDITORIAL ARCHIVE',
+  banner_tagline: 'EDITORIAL ARCHIVE',
+  spec1_label: 'MEDIUM',
+  spec1_val: '35mm Kodak Tri-X',
+  spec2_label: 'ARCHIVE',
+  spec2_val: '',
+  btn1_text: 'Buka Full Lookbook',
+  btn2_text: 'Lihat Katalog',
 })
-const isUploadingLookbookCover = ref(false)
 const isUploadingLookbookGallery = ref(false)
+
+const lookbookPreviewImage = computed(() => {
+  const first = lookbookForm.value.gallery?.[0]
+  if (!first) return lookbookForm.value.cover_image || null
+  if (typeof first === 'object' && first.url) return first.url
+  if (typeof first === 'string') {
+    const trimmed = first.trim()
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        if (parsed.url) return parsed.url
+      } catch (_) {}
+    }
+    return trimmed
+  }
+  return null
+})
 
 function notify(text, type = 'success') {
   notification.value = { text, type }
@@ -324,27 +349,65 @@ async function loadAdminData() {
 
     if (books && books.length > 0) {
       const current = books[0]
+      let savedBanner = null
+      try {
+        const raw = localStorage.getItem('bibletalk_lookbook_banner_local')
+        if (raw) savedBanner = JSON.parse(raw)
+      } catch (_) {}
+
       lookbookForm.value = {
         id: current.id,
         title: current.title || '',
         season: current.season || '',
         description: current.description || '',
         cover_image: current.cover_image || '',
+        banner_badge: savedBanner?.banner_badge || '✦ 35MM EDITORIAL ARCHIVE',
+        banner_tagline: savedBanner?.banner_tagline || 'EDITORIAL ARCHIVE',
+        spec1_label: savedBanner?.spec1_label || 'MEDIUM',
+        spec1_val: savedBanner?.spec1_val || '35mm Kodak Tri-X',
+        spec2_label: savedBanner?.spec2_label || 'ARCHIVE',
+        spec2_val: savedBanner?.spec2_val || '',
+        btn1_text: savedBanner?.btn1_text || 'Buka Full Lookbook',
+        btn2_text: savedBanner?.btn2_text || 'Lihat Katalog',
         gallery: Array.isArray(current.gallery)
-          ? current.gallery.map((item) => {
+          ? current.gallery.map((item, idx) => {
               if (typeof item === 'string') {
                 const trimmed = item.trim()
                 if (trimmed.startsWith('{')) {
                   try {
                     const parsed = JSON.parse(trimmed)
                     if (parsed.url) {
-                      return { url: parsed.url, caption: parsed.caption || '' }
+                      return {
+                        url: parsed.url,
+                        title: parsed.title || parsed.caption || '',
+                        caption: parsed.caption || '',
+                        verse: parsed.verse || 'MATTHEW 5:14',
+                        spec: parsed.spec || '16s COMBED COTTON 235+ GSM',
+                        fit: parsed.fit || 'Boxy Drop-Shoulder Silhouette',
+                        lookCode: parsed.lookCode || `LOOK 0${idx + 1}`,
+                      }
                     }
                   } catch (_) {}
                 }
-                return { url: trimmed, caption: '' }
+                return {
+                  url: trimmed,
+                  title: '',
+                  caption: '',
+                  verse: 'MATTHEW 5:14',
+                  spec: '16s COMBED COTTON 235+ GSM',
+                  fit: 'Boxy Drop-Shoulder Silhouette',
+                  lookCode: `LOOK 0${idx + 1}`,
+                }
               }
-              return { url: item?.url || '', caption: item?.caption || '' }
+              return {
+                url: item?.url || '',
+                title: item?.title || item?.caption || '',
+                caption: item?.caption || '',
+                verse: item?.verse || 'MATTHEW 5:14',
+                spec: item?.spec || '16s COMBED COTTON 235+ GSM',
+                fit: item?.fit || 'Boxy Drop-Shoulder Silhouette',
+                lookCode: item?.lookCode || `LOOK 0${idx + 1}`,
+              }
             })
           : [],
       }
@@ -735,18 +798,38 @@ async function handleSaveSettings() {
 // LOOKBOOK ACTIONS
 // ==============================================================================
 
-async function handleLookbookCoverUpload(e) {
+async function handleBannerCoverUpload(e) {
   const file = e.target.files?.[0]
   if (!file) return
-  isUploadingLookbookCover.value = true
+  isUploadingLookbookGallery.value = true
   try {
     const publicUrl = await uploadImage(file, 'lookbooks')
     lookbookForm.value.cover_image = publicUrl
-    notify('Foto cover lookbook berhasil diunggah!')
+    if (!Array.isArray(lookbookForm.value.gallery)) {
+      lookbookForm.value.gallery = []
+    }
+    if (lookbookForm.value.gallery.length === 0) {
+      lookbookForm.value.gallery.unshift({
+        url: publicUrl,
+        title: lookbookForm.value.title || '',
+        caption: '',
+        verse: 'MATTHEW 5:14',
+        spec: '16s COMBED COTTON 235+ GSM',
+        fit: 'Boxy Drop-Shoulder Silhouette',
+        lookCode: 'LOOK 01',
+      })
+    } else {
+      if (typeof lookbookForm.value.gallery[0] === 'string') {
+        lookbookForm.value.gallery[0] = publicUrl
+      } else {
+        lookbookForm.value.gallery[0].url = publicUrl
+      }
+    }
+    notify('Foto banner berhasil diperbarui!')
   } catch (err) {
-    notify('Gagal unggah foto cover: ' + err.message, 'error')
+    notify('Gagal unggah foto banner: ' + err.message, 'error')
   } finally {
-    isUploadingLookbookCover.value = false
+    isUploadingLookbookGallery.value = false
     e.target.value = ''
   }
 }
@@ -757,7 +840,15 @@ async function handleLookbookGalleryUpload(e) {
   isUploadingLookbookGallery.value = true
   try {
     const publicUrl = await uploadImage(file, 'lookbooks')
-    lookbookForm.value.gallery.push({ url: publicUrl, caption: '' })
+    lookbookForm.value.gallery.push({
+      url: publicUrl,
+      title: '',
+      caption: '',
+      verse: 'MATTHEW 5:14',
+      spec: '16s COMBED COTTON 235+ GSM',
+      fit: 'Boxy Drop-Shoulder Silhouette',
+      lookCode: `LOOK 0${lookbookForm.value.gallery.length + 1}`,
+    })
     notify('Foto editorial berhasil ditambahkan ke galeri!')
   } catch (err) {
     notify('Gagal unggah foto galeri: ' + err.message, 'error')
@@ -779,16 +870,27 @@ async function handleSaveLookbook() {
 
   actionLoading.value = true
   try {
-    // Format array gallery: jika ada caption simpan JSON string, jika tidak simpan URL string murni
+    // Format array gallery: simpan seluruh metadata kustom per foto ke JSON string
     const processedGallery = (lookbookForm.value.gallery || [])
       .filter((g) => g && (g.url || typeof g === 'string'))
-      .map((g) => {
+      .map((g, idx) => {
         const url = typeof g === 'string' ? g : g.url
-        const caption = typeof g === 'string' ? '' : (g.caption || '').trim()
-        if (caption) {
-          return JSON.stringify({ url, caption })
-        }
-        return url
+        const title = typeof g === 'object' ? (g.title || '').trim() : ''
+        const caption = typeof g === 'object' ? (g.caption || '').trim() : ''
+        const verse = typeof g === 'object' ? (g.verse || 'MATTHEW 5:14').trim() : 'MATTHEW 5:14'
+        const spec = typeof g === 'object' ? (g.spec || '16s COMBED COTTON 235+ GSM').trim() : '16s COMBED COTTON 235+ GSM'
+        const fit = typeof g === 'object' ? (g.fit || 'Boxy Drop-Shoulder Silhouette').trim() : 'Boxy Drop-Shoulder Silhouette'
+        const lookCode = typeof g === 'object' ? (g.lookCode || `LOOK 0${idx + 1}`).trim() : `LOOK 0${idx + 1}`
+
+        return JSON.stringify({
+          url,
+          title,
+          caption,
+          verse,
+          spec,
+          fit,
+          lookCode,
+        })
       })
 
     const payload = {
@@ -800,7 +902,7 @@ async function handleSaveLookbook() {
         .replace(/\s+/g, '-'),
       season: lookbookForm.value.season,
       description: lookbookForm.value.description,
-      cover_image: lookbookForm.value.cover_image,
+      cover_image: lookbookForm.value.gallery?.[0]?.url || (typeof lookbookForm.value.gallery?.[0] === 'string' ? lookbookForm.value.gallery[0] : null) || null,
       gallery: processedGallery,
       is_active: true,
     }
@@ -812,10 +914,29 @@ async function handleSaveLookbook() {
       lookbookForm.value.id = created.id
     }
 
+    // Simpan konfigurasi banner beranda ke storage lokal
+    const bannerPayload = {
+      banner_badge: lookbookForm.value.banner_badge || '✦ 35MM EDITORIAL ARCHIVE',
+      banner_tagline: lookbookForm.value.banner_tagline || 'EDITORIAL ARCHIVE',
+      spec1_label: lookbookForm.value.spec1_label || 'MEDIUM',
+      spec1_val: lookbookForm.value.spec1_val || '35mm Kodak Tri-X',
+      spec2_label: lookbookForm.value.spec2_label || 'ARCHIVE',
+      spec2_val: lookbookForm.value.spec2_val || '',
+      btn1_text: lookbookForm.value.btn1_text || 'Buka Full Lookbook',
+      btn2_text: lookbookForm.value.btn2_text || 'Lihat Katalog',
+    }
+
+    try {
+      localStorage.setItem('bibletalk_lookbook_banner_local', JSON.stringify(bannerPayload))
+    } catch (_) {}
+
     notify('Editorial Lookbook berhasil diperbarui!')
     // Update store state so homepage and lookbook view immediately reflect it
     await catalogStore.initStore()
     const updatedBooks = await adminGetLookbooks().catch(() => [])
+    if (updatedBooks && updatedBooks.length > 0) {
+      updatedBooks[0].banner_settings = bannerPayload
+    }
     catalogStore.lookbooks = updatedBooks
   } catch (err) {
     notify('Gagal menyimpan lookbook: ' + err.message, 'error')
@@ -1684,81 +1805,304 @@ async function handleLogout() {
     </div>
 
     <!-- TAB 3: EDITORIAL LOOKBOOK MANAGEMENT -->
-    <div v-else-if="activeTab === 'lookbook'" class="max-w-4xl bg-white border-2 border-brand-950 shadow-[4px_4px_0px_#153227] p-6 sm:p-8 space-y-6">
-      <div class="border-b-2 border-brand-950 pb-3">
-        <h2 class="font-sans font-black text-xl text-brand-950 uppercase tracking-tight">
-          Kelola Editorial Lookbook & Banner
-        </h2>
-        <p class="font-mono text-xs text-brand-600 mt-0.5">
-          Ubah judul koleksi, narasi cerita, foto cover utama, serta galeri foto yang tampil di Beranda dan halaman Lookbook.
-        </p>
+    <div v-else-if="activeTab === 'lookbook'" class="max-w-5xl bg-white border-2 border-brand-950 shadow-[4px_4px_0px_#153227] p-6 sm:p-8 space-y-6">
+      <div class="border-b-2 border-brand-950 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="font-sans font-black text-xl text-brand-950 uppercase tracking-tight">
+            Kustomisasi Banner Beranda & Editorial Lookbook
+          </h2>
+          <p class="font-mono text-xs text-brand-600 mt-0.5">
+            Semua elemen pada banner di Beranda (foto, stiker, judul, narasi, spek, dan tombol) dapat diubah langsung di satu tempat ini.
+          </p>
+        </div>
+        <button
+          type="button"
+          @click="handleSaveLookbook"
+          :disabled="actionLoading"
+          class="px-5 py-2 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono uppercase font-black text-xs border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 transition-all self-start sm:self-auto shrink-0 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+        >
+          <Loader2 v-if="actionLoading" class="w-3.5 h-3.5 animate-spin" />
+          <span>Simpan Perubahan</span>
+        </button>
       </div>
 
       <form @submit.prevent="handleSaveLookbook" class="space-y-6 font-sans text-xs">
         
-        <!-- Title & Season -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="space-y-1 font-mono">
-            <label class="block uppercase font-bold text-brand-950">Judul Koleksi Lookbook *</label>
-            <input
-              v-model="lookbookForm.title"
-              type="text"
-              required
-              placeholder="Drop 01 // Genesis & Concrete Youth"
-              class="w-full px-3.5 py-2 bg-white border-2 border-brand-950 text-brand-950 font-bold shadow-[2px_2px_0px_#153227]"
-            />
-          </div>
-
-          <div class="space-y-1 font-mono">
-            <label class="block uppercase font-bold text-brand-950">Tagline Season *</label>
-            <input
-              v-model="lookbookForm.season"
-              type="text"
-              required
-              placeholder="SEASON 2026 EDITORIAL"
-              class="w-full px-3.5 py-2 bg-white border-2 border-brand-950 text-brand-950 shadow-[2px_2px_0px_#153227]"
-            />
-          </div>
-        </div>
-
-        <!-- Description -->
-        <div class="space-y-1 font-mono">
-          <label class="block uppercase font-bold text-brand-950">Deskripsi Editorial / Narasi Koleksi</label>
-          <textarea
-            v-model="lookbookForm.description"
-            rows="3"
-            placeholder="Jelaskan vibe dan pesan di balik pemotretan pakaian..."
-            class="w-full px-3.5 py-2 bg-white border-2 border-brand-950 text-brand-950 shadow-[2px_2px_0px_#153227] leading-relaxed font-sans"
-          ></textarea>
-        </div>
-
-        <!-- Cover Image Uploader -->
-        <div class="space-y-3 border-t-2 border-brand-950/20 pt-4 font-mono">
-          <label class="block uppercase font-bold text-brand-950">Foto Cover Utama (Hero Banner Lookbook)</label>
+        <!-- SECTION 1: UNIFIED BANNER EDITOR WITH REAL-TIME LIVE PREVIEW -->
+        <div class="border-2 border-brand-950 bg-[#faf8f4] p-4 sm:p-6 space-y-6 shadow-[3px_3px_0px_#153227]">
           
-          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <img
-              v-if="lookbookForm.cover_image"
-              :src="lookbookForm.cover_image"
-              alt="Cover Preview"
-              class="w-36 h-22 object-cover border-2 border-brand-950 shadow-[2px_2px_0px_#153227] bg-brand-100 flex-shrink-0"
-            />
-            <div class="space-y-2">
-              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-brand-100 border-2 border-brand-950 text-brand-950 font-mono text-xs font-bold uppercase shadow-[2px_2px_0px_#153227] transition-all">
-                <Upload class="w-4 h-4 text-brand-950" />
-                <span>{{ isUploadingLookbookCover ? 'Mengunggah Cover...' : 'Ganti Foto Cover' }}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  class="hidden"
-                  :disabled="isUploadingLookbookCover"
-                  @change="handleLookbookCoverUpload"
-                />
-              </label>
-              <p class="text-[11px] text-brand-500 font-mono">Disarankan rasio lanskap (16:9 atau foto horizontal lebar).</p>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-brand-950/20 pb-3">
+            <div>
+              <h3 class="font-mono uppercase font-black text-sm text-brand-950 flex items-center gap-2">
+                <span class="w-3 h-3 bg-scripture-gold border-2 border-brand-950 inline-block"></span>
+                Tampilan & Pengaturan Banner Beranda (Home Centerfold)
+              </h3>
+              <p class="text-[11px] text-brand-600 font-mono mt-0.5">
+                Lihat preview interaktif di bawah. Ketik atau ubah kolom di bawahnya untuk melihat perubahannya secara langsung.
+              </p>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-950 text-scripture-gold text-[10px] font-mono font-bold tracking-wider uppercase border border-brand-950 self-start sm:self-auto shadow-[1px_1px_0px_#153227]">
+              <Eye class="w-3.5 h-3.5" />
+              <span>Live Real-Time Preview</span>
+            </span>
+          </div>
+
+          <!-- THE LIVE PREVIEW CARD -->
+          <div class="space-y-1.5">
+            <span class="block font-mono text-[10px] uppercase font-bold text-brand-700 tracking-wider">
+              ✦ Preview Banner di Beranda (Tampilan Langsung):
+            </span>
+            <div class="bg-white border-2 border-brand-950 shadow-[4px_4px_0px_#153227] overflow-hidden">
+              <div class="grid grid-cols-1 lg:grid-cols-12 items-stretch">
+                <!-- Preview Image Frame with Action to Change Photo -->
+                <div class="lg:col-span-6 relative min-h-[220px] sm:min-h-[280px] bg-brand-100 border-b-2 lg:border-b-0 lg:border-r-2 border-brand-950 flex items-center justify-center overflow-hidden">
+                  <img
+                    v-if="lookbookPreviewImage"
+                    :src="lookbookPreviewImage"
+                    alt="Preview Editorial"
+                    class="w-full h-full object-cover filter contrast-105"
+                  />
+                  <div v-else class="flex flex-col items-center justify-center p-6 text-center text-brand-400">
+                    <Camera class="w-8 h-8 opacity-40 mb-1 text-brand-950" />
+                    <span class="font-mono text-xs uppercase font-bold text-brand-950">Foto Belum Diunggah</span>
+                    <span class="font-mono text-[10px] text-brand-500">Klik tombol di bawah untuk memilih foto</span>
+                  </div>
+
+                  <!-- Stamped Sticker on Preview -->
+                  <div class="absolute top-3 left-3 z-10 -rotate-2">
+                    <span class="px-2 py-0.5 bg-brand-950 text-scripture-gold font-mono font-black text-[10px] uppercase border-2 border-white shadow-[2px_2px_0px_#f5b025]">
+                      {{ lookbookForm.banner_badge || '✦ 35MM EDITORIAL ARCHIVE' }}
+                    </span>
+                  </div>
+
+                  <!-- Quick Change Cover Button Overlay -->
+                  <div class="absolute bottom-3 right-3 z-10">
+                    <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-brand-50 text-brand-950 font-mono text-[10px] font-bold uppercase border-2 border-brand-950 shadow-[2px_2px_0px_#153227] transition-all">
+                      <Camera class="w-3.5 h-3.5 text-brand-950" />
+                      <span>{{ isUploadingLookbookGallery ? 'Mengunggah...' : 'Ganti Foto Banner' }}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        class="hidden"
+                        :disabled="isUploadingLookbookGallery"
+                        @change="handleBannerCoverUpload"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Preview Content -->
+                <div class="lg:col-span-6 p-5 sm:p-6 flex flex-col justify-between space-y-4 bg-white">
+                  <div class="space-y-2">
+                    <div class="inline-flex items-center gap-1.5 font-mono text-[10px] text-brand-950 uppercase font-bold tracking-wider">
+                      <span class="w-2 h-2 bg-scripture-gold border border-brand-950"></span>
+                      <span>{{ lookbookForm.banner_tagline || 'EDITORIAL ARCHIVE' }} // {{ lookbookForm.season || 'SEASON 2026' }}</span>
+                    </div>
+                    <h3 class="font-sans font-black text-xl sm:text-2xl text-brand-950 uppercase tracking-tight leading-tight">
+                      {{ lookbookForm.title || 'GENESIS & CONCRETE YOUTH' }}
+                    </h3>
+                    <p class="text-brand-800 text-xs leading-relaxed font-sans line-clamp-3">
+                      {{ lookbookForm.description || 'Eksplorasi kontras antara visual scripture klasik dan lanskap urban underground brutalist. Didokumentasikan di jalanan urban malam hari.' }}
+                    </p>
+
+                    <!-- Preview Quick Specs -->
+                    <div class="grid grid-cols-2 gap-2 pt-2 font-mono text-[10px] text-brand-700 border-t border-brand-950/15">
+                      <div>
+                        <span class="text-brand-500 block uppercase font-bold">{{ lookbookForm.spec1_label || 'MEDIUM' }}</span>
+                        <span class="font-bold text-brand-950">{{ lookbookForm.spec1_val || '35mm Kodak Tri-X' }}</span>
+                      </div>
+                      <div>
+                        <span class="text-brand-500 block uppercase font-bold">{{ lookbookForm.spec2_label || 'ARCHIVE' }}</span>
+                        <span class="font-bold text-brand-950">{{ lookbookForm.spec2_val || ('Vol. 01 / ' + (lookbookForm.gallery?.length || 0) + ' Looks') }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Preview Action Buttons -->
+                  <div class="pt-2 flex items-center gap-2 flex-wrap pointer-events-none">
+                    <div class="inline-flex items-center gap-1.5 px-4 py-2 font-mono text-[11px] uppercase font-black bg-brand-950 text-white border-2 border-brand-950 shadow-[2px_2px_0px_#153227]">
+                      <span>{{ lookbookForm.btn1_text || 'Buka Full Lookbook' }}</span>
+                      <ArrowRight class="w-3.5 h-3.5 text-scripture-gold" />
+                    </div>
+                    <div class="inline-flex items-center px-3 py-2 font-mono text-[11px] uppercase font-bold text-brand-950 border border-brand-950 bg-brand-50">
+                      <span>{{ lookbookForm.btn2_text || 'Lihat Katalog' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
+          <!-- UNIFIED FORM FIELDS FOR THE ENTIRE BANNER -->
+          <div class="space-y-4 pt-4 border-t-2 border-brand-950/20">
+            <div class="flex items-center justify-between">
+              <span class="block font-mono text-xs uppercase font-black text-brand-950 tracking-wider">
+                ✎ Form Pengaturan Lengkap Banner Beranda:
+              </span>
+              <span class="text-[11px] text-brand-500 font-mono">
+                Semua perubahan otomatis tampil di preview di atas
+              </span>
+            </div>
+
+            <!-- Group 1: Judul & Season Tagline -->
+            <div class="bg-white border-2 border-brand-950 p-4 shadow-[2px_2px_0px_#153227] space-y-3">
+              <span class="block font-mono text-[11px] uppercase font-bold text-brand-950 border-b border-brand-950/15 pb-1.5">
+                1. Judul & Tagline Atas
+              </span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1 font-mono">
+                  <label class="block uppercase font-bold text-brand-950 text-[11px]">Judul Utama Koleksi *</label>
+                  <input
+                    v-model="lookbookForm.title"
+                    type="text"
+                    required
+                    placeholder="Genesis & Concrete Youth"
+                    class="w-full px-3 py-2 bg-[#faf8f4] border-2 border-brand-950 text-brand-950 font-bold"
+                  />
+                </div>
+
+                <div class="space-y-1 font-mono">
+                  <label class="block uppercase font-bold text-brand-950 text-[11px]">Tagline Season *</label>
+                  <input
+                    v-model="lookbookForm.season"
+                    type="text"
+                    required
+                    placeholder="2026 EDITORIAL"
+                    class="w-full px-3 py-2 bg-[#faf8f4] border-2 border-brand-950 text-brand-950"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 2: Stiker Foto & Awalan Tagline -->
+            <div class="bg-white border-2 border-brand-950 p-4 shadow-[2px_2px_0px_#153227] space-y-3">
+              <span class="block font-mono text-[11px] uppercase font-bold text-brand-950 border-b border-brand-950/15 pb-1.5">
+                2. Teks Stiker Foto & Awalan Kategori
+              </span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1 font-mono">
+                  <label class="block uppercase font-bold text-brand-950 text-[11px]">Teks Stiker Foto (Pojok Kiri Atas Foto)</label>
+                  <input
+                    v-model="lookbookForm.banner_badge"
+                    type="text"
+                    placeholder="✦ 35MM EDITORIAL ARCHIVE"
+                    class="w-full px-3 py-2 bg-[#faf8f4] border-2 border-brand-950 text-brand-950 font-bold"
+                  />
+                </div>
+
+                <div class="space-y-1 font-mono">
+                  <label class="block uppercase font-bold text-brand-950 text-[11px]">Awalan Tagline (Sebelum // Season)</label>
+                  <input
+                    v-model="lookbookForm.banner_tagline"
+                    type="text"
+                    placeholder="EDITORIAL ARCHIVE"
+                    class="w-full px-3 py-2 bg-[#faf8f4] border-2 border-brand-950 text-brand-950"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 3: Deskripsi Narasi -->
+            <div class="bg-white border-2 border-brand-950 p-4 shadow-[2px_2px_0px_#153227] space-y-2">
+              <span class="block font-mono text-[11px] uppercase font-bold text-brand-950 border-b border-brand-950/15 pb-1.5">
+                3. Deskripsi / Narasi Cerita Koleksi
+              </span>
+              <textarea
+                v-model="lookbookForm.description"
+                rows="3"
+                placeholder="Eksplorasi kontras antara visual scripture klasik dan lanskap urban underground brutalist. Didokumentasikan di jalanan urban malam hari."
+                class="w-full px-3 py-2 bg-[#faf8f4] border-2 border-brand-950 text-brand-950 leading-relaxed font-sans"
+              ></textarea>
+            </div>
+
+            <!-- Group 4: Quick Specs -->
+            <div class="bg-white border-2 border-brand-950 p-4 shadow-[2px_2px_0px_#153227] space-y-3">
+              <span class="block font-mono text-[11px] uppercase font-bold text-brand-950 border-b border-brand-950/15 pb-1.5">
+                4. Baris Spesifikasi (Quick Specs)
+              </span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-brand-50/50 border border-brand-950 p-3 space-y-2">
+                  <span class="block font-mono uppercase font-bold text-[10px] text-brand-950">Spesifikasi 1 (Kiri)</span>
+                  <div class="grid grid-cols-2 gap-2 font-mono">
+                    <div>
+                      <label class="block text-[10px] text-brand-500 uppercase">Label</label>
+                      <input
+                        v-model="lookbookForm.spec1_label"
+                        type="text"
+                        placeholder="MEDIUM"
+                        class="w-full px-2 py-1.5 bg-white border border-brand-950 text-brand-950 text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-[10px] text-brand-500 uppercase">Nilai / Isi</label>
+                      <input
+                        v-model="lookbookForm.spec1_val"
+                        type="text"
+                        placeholder="35mm Kodak Tri-X"
+                        class="w-full px-2 py-1.5 bg-white border border-brand-950 text-brand-950 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-brand-50/50 border border-brand-950 p-3 space-y-2">
+                  <span class="block font-mono uppercase font-bold text-[10px] text-brand-950">Spesifikasi 2 (Kanan)</span>
+                  <div class="grid grid-cols-2 gap-2 font-mono">
+                    <div>
+                      <label class="block text-[10px] text-brand-500 uppercase">Label</label>
+                      <input
+                        v-model="lookbookForm.spec2_label"
+                        type="text"
+                        placeholder="ARCHIVE"
+                        class="w-full px-2 py-1.5 bg-white border border-brand-950 text-brand-950 text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-[10px] text-brand-500 uppercase">Nilai / Isi</label>
+                      <input
+                        v-model="lookbookForm.spec2_val"
+                        type="text"
+                        placeholder="Vol. 01 / 8 Looks (Kosong = Otomatis)"
+                        class="w-full px-2 py-1.5 bg-white border border-brand-950 text-brand-950 text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 5: Action Buttons Text -->
+            <div class="bg-white border-2 border-brand-950 p-4 shadow-[2px_2px_0px_#153227] space-y-3">
+              <span class="block font-mono text-[11px] uppercase font-bold text-brand-950 border-b border-brand-950/15 pb-1.5">
+                5. Teks Tombol Aksi (CTA Buttons)
+              </span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1 font-mono">
+                  <label class="block uppercase font-bold text-brand-950 text-[11px]">Teks Tombol Utama</label>
+                  <input
+                    v-model="lookbookForm.btn1_text"
+                    type="text"
+                    placeholder="Buka Full Lookbook"
+                    class="w-full px-3 py-2 bg-[#faf8f4] border-2 border-brand-950 text-brand-950 font-bold"
+                  />
+                </div>
+
+                <div class="space-y-1 font-mono">
+                  <label class="block uppercase font-bold text-brand-950 text-[11px]">Teks Tombol Sekunder</label>
+                  <input
+                    v-model="lookbookForm.btn2_text"
+                    type="text"
+                    placeholder="Lihat Katalog"
+                    class="w-full px-3 py-2 bg-[#faf8f4] border-2 border-brand-950 text-brand-950 font-bold"
+                  />
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
+
+
 
         <!-- Gallery Uploader -->
         <div class="space-y-3 border-t-2 border-brand-950/20 pt-5">
@@ -1781,42 +2125,131 @@ async function handleLogout() {
             </label>
           </div>
 
-          <!-- Gallery Photos Grid -->
-          <div v-if="lookbookForm.gallery && lookbookForm.gallery.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+          <!-- Gallery Photos Grid (Fully Customizable per Frame) -->
+          <div v-if="lookbookForm.gallery && lookbookForm.gallery.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
             <div
               v-for="(item, idx) in lookbookForm.gallery"
               :key="idx"
-              class="bg-white border-2 border-brand-950 overflow-hidden flex flex-col justify-between shadow-[2px_2px_0px_#153227]"
+              class="bg-[#faf8f4] border-2 border-brand-950 overflow-hidden flex flex-col justify-between shadow-[3px_3px_0px_#153227] transition-all"
             >
-              <!-- Media Box -->
-              <div class="relative aspect-[4/3] bg-brand-100 overflow-hidden group border-b-2 border-brand-950">
+              <!-- Media Box & Live Badge Preview -->
+              <div class="relative aspect-[16/9] bg-brand-900/10 overflow-hidden border-b-2 border-brand-950 group">
                 <img :src="typeof item === 'string' ? item : item.url" class="w-full h-full object-cover" />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+
                 <button
                   type="button"
                   @click="removeLookbookGalleryImage(idx)"
-                  class="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white border border-brand-950 shadow transition-colors"
+                  class="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white border border-brand-950 shadow-[2px_2px_0px_#000] transition-colors z-20"
                   title="Hapus Foto Ini"
                 >
                   <Trash2 class="w-3.5 h-3.5" />
                 </button>
-                <span class="absolute bottom-2 left-2 px-2 py-0.5 bg-brand-950 text-scripture-gold text-[10px] font-mono font-bold uppercase border border-brand-950">
-                  Foto #{{ idx + 1 }}
-                </span>
+
+                <div class="absolute bottom-2 left-2 flex items-center gap-1.5 z-20">
+                  <span class="px-2 py-0.5 bg-brand-950 text-scripture-gold text-[10px] font-mono font-bold uppercase border border-brand-950 shadow-xs">
+                    Frame #{{ idx + 1 }}
+                  </span>
+                  <span class="px-2 py-0.5 bg-white text-brand-950 text-[10px] font-mono font-black uppercase border border-brand-950 shadow-xs">
+                    {{ item.lookCode || `LOOK 0${idx + 1}` }}
+                  </span>
+                </div>
+
+                <div class="absolute bottom-2 right-2 z-20">
+                  <span class="px-2 py-0.5 bg-scripture-gold text-brand-950 text-[10px] font-mono font-black uppercase border border-brand-950 shadow-xs">
+                    {{ item.verse || 'MATTHEW 5:14' }}
+                  </span>
+                </div>
               </div>
 
-              <!-- Optional Caption Box -->
-              <div class="p-3 space-y-1.5 bg-white">
-                <div class="flex items-center justify-between font-mono">
-                  <label class="text-[10px] text-brand-950 uppercase font-bold">Caption Foto (Opsional)</label>
-                  <span class="text-[9px] text-brand-400">Bisa dikosongkan</span>
+              <!-- Form Fields for this Photo -->
+              <div class="p-3.5 space-y-2.5 bg-white text-xs font-mono">
+                
+                <!-- Title & Look Code -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div class="sm:col-span-2 space-y-1">
+                    <label class="block text-[10px] text-brand-950 uppercase font-black">
+                      Judul Artikel / Look *
+                    </label>
+                    <input
+                      v-model="item.title"
+                      type="text"
+                      placeholder="Misal: THE LAST SUPPER #1"
+                      class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs font-bold shadow-xs placeholder:text-brand-400 placeholder:font-normal"
+                    />
+                  </div>
+                  <div class="space-y-1">
+                    <label class="block text-[10px] text-brand-950 uppercase font-black">
+                      Kode Look
+                    </label>
+                    <input
+                      v-model="item.lookCode"
+                      type="text"
+                      :placeholder="`LOOK 0${idx + 1}`"
+                      class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs font-bold shadow-xs placeholder:text-brand-400 uppercase"
+                    />
+                  </div>
                 </div>
-                <input
-                  v-if="typeof item === 'object'"
-                  v-model="item.caption"
-                  type="text"
-                  placeholder="Misal: Heavy Boxy Cut / Tampak Belakang..."
-                  class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs font-mono placeholder:text-brand-400"
-                />
+
+                <!-- Verse & Material Spec Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <!-- Scripture Verse -->
+                  <div class="space-y-1">
+                    <div class="flex items-center justify-between">
+                      <label class="text-[10px] text-brand-950 uppercase font-black">Ayat Firman</label>
+                      <span class="text-[9px] text-brand-400">Badge Kanan</span>
+                    </div>
+                    <input
+                      v-model="item.verse"
+                      type="text"
+                      placeholder="Misal: MATTHEW 5:14"
+                      class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs font-bold shadow-xs placeholder:text-brand-400 uppercase"
+                    />
+                  </div>
+
+                  <!-- Material Spec -->
+                  <div class="space-y-1">
+                    <div class="flex items-center justify-between">
+                      <label class="text-[10px] text-brand-950 uppercase font-black">Spesifikasi Kain (Spec 1)</label>
+                      <span class="text-[9px] text-brand-400">Checklist 1</span>
+                    </div>
+                    <input
+                      v-model="item.spec"
+                      type="text"
+                      placeholder="Misal: 16s COMBED COTTON 235+ GSM"
+                      class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs font-bold shadow-xs placeholder:text-brand-400 uppercase"
+                    />
+                  </div>
+                </div>
+
+                <!-- Silhouette / Fit -->
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between">
+                    <label class="text-[10px] text-brand-950 uppercase font-black">Siluet / Potongan (Spec 2)</label>
+                    <span class="text-[9px] text-brand-400">Checklist 2</span>
+                  </div>
+                  <input
+                    v-model="item.fit"
+                    type="text"
+                    placeholder="Misal: Boxy Drop-Shoulder Silhouette"
+                    class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs font-bold shadow-xs placeholder:text-brand-400"
+                  />
+                </div>
+
+                <!-- Caption / Narrative -->
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between">
+                    <label class="text-[10px] text-brand-950 uppercase font-black">Deskripsi Detail Foto</label>
+                    <span class="text-[9px] text-brand-400">Teks narasi di Lightbox</span>
+                  </div>
+                  <textarea
+                    v-model="item.caption"
+                    rows="2"
+                    placeholder="Misal: Kaos oversized grafis perjamuan kudus dengan teknik discharge plastisol..."
+                    class="w-full px-2.5 py-1.5 bg-white border-2 border-brand-950 text-brand-950 text-xs shadow-xs leading-relaxed font-sans placeholder:font-mono placeholder:text-xs"
+                  ></textarea>
+                </div>
+
               </div>
             </div>
           </div>
@@ -1829,7 +2262,7 @@ async function handleLogout() {
         <div class="pt-4 border-t-2 border-brand-950/20 flex justify-end">
           <button
             type="submit"
-            :disabled="actionLoading || isUploadingLookbookCover || isUploadingLookbookGallery"
+            :disabled="actionLoading || isUploadingLookbookGallery"
             class="px-8 py-3 bg-brand-950 hover:bg-brand-900 text-scripture-gold font-mono text-xs uppercase font-black tracking-widest border-2 border-brand-950 shadow-[2px_2px_0px_#153227] flex items-center gap-2 transition-all active:translate-x-0.5 active:translate-y-0.5"
           >
             <Loader2 v-if="actionLoading" class="w-4 h-4 animate-spin" />

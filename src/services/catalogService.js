@@ -123,7 +123,15 @@ export async function getLookbooks() {
     throw error
   }
 
-  return data || []
+  const result = data || []
+  try {
+    const rawBanner = localStorage.getItem('bibletalk_lookbook_banner_local')
+    if (rawBanner && result.length > 0) {
+      result[0].banner_settings = JSON.parse(rawBanner)
+    }
+  } catch (_) {}
+
+  return result
 }
 
 /**

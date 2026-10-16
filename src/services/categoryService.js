@@ -199,7 +199,7 @@ function mapShowcaseWithCategories(cards, categories = []) {
       title: card.title || (matchedCategory ? matchedCategory.name : 'Koleksi'),
       tag: card.tag || `0${idx + 1} // ${matchedCategory ? matchedCategory.name.toUpperCase() : 'COLLECTION'}`,
       description: card.description || (matchedCategory ? matchedCategory.description : ''),
-      image: card.image || 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80',
+      image: card.image || '',
       badge: card.badge || 'COLLECTION',
       button_text: card.button_text || (matchedCategory ? matchedCategory.name : 'Lihat'),
       sort_order: Number(card.sort_order) || idx + 1,

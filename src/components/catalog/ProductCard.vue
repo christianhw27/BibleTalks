@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCatalogStore } from '../../stores/catalogStore'
-import { Sparkles } from 'lucide-vue-next'
+import { Sparkles, Camera } from 'lucide-vue-next'
 
 const props = defineProps({
   product: {
@@ -15,14 +15,14 @@ const router = useRouter()
 const catalogStore = useCatalogStore()
 
 const primaryImage = computed(() => {
-  if (props.product.images && props.product.images.length > 0) {
+  if (props.product.images && props.product.images.length > 0 && props.product.images[0]) {
     return props.product.images[0]
   }
-  return 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80'
+  return null
 })
 
 const secondaryImage = computed(() => {
-  if (props.product.images && props.product.images.length > 1) {
+  if (props.product.images && props.product.images.length > 1 && props.product.images[1]) {
     return props.product.images[1]
   }
   return null
@@ -58,12 +58,17 @@ function goToDetail() {
 
       <!-- Main Product Image -->
       <img
+        v-if="primaryImage"
         :src="primaryImage"
         :alt="product.title"
         loading="lazy"
         class="w-full h-full object-cover object-center transition-all duration-500 ease-out group-hover:scale-105"
         :class="{ 'group-hover:opacity-0': secondaryImage }"
       />
+      <div v-else class="w-full h-full flex flex-col items-center justify-center bg-brand-100 text-brand-400 font-mono text-[10px] uppercase">
+        <Camera class="w-6 h-6 stroke-[1.5] mb-1 opacity-40 text-brand-950" />
+        <span class="text-brand-600 font-bold">No Image</span>
+      </div>
 
       <!-- Secondary Image on Hover (if available) -->
       <img

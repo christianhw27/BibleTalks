@@ -10,110 +10,11 @@ import {
   ShoppingBag,
   Maximize2,
   Check,
+  Camera,
 } from 'lucide-vue-next'
 
 const router = useRouter()
 const catalogStore = useCatalogStore()
-
-// Curated Editorial Streetwear Archive Frames with Categories & Frame Specs
-const DEFAULT_EDITORIAL_FRAMES = [
-  {
-    id: 'frame-1',
-    url: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=1400&q=85',
-    title: 'Concrete & Midnight Youth',
-    caption: 'Siluet drop-shoulder boxy hoodie berpadu dengan lanskap urban malam hari.',
-    lookCode: 'LOOK 01',
-    category: 'outerwear',
-    categoryLabel: 'HOODIE // FLEECE',
-    spec: 'FRENCH TERRY 400 GSM',
-    verse: 'MATTHEW 5:14',
-    frameNum: '▲ 01A',
-  },
-  {
-    id: 'frame-2',
-    url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1400&q=85',
-    title: 'Genesis Boxy Tee Raw White',
-    caption: 'Potongan santai 16s ultra heavyweight 235+ GSM dengan jahitan kerah kokoh rib 3cm.',
-    lookCode: 'LOOK 02',
-    category: 'tees',
-    categoryLabel: 'BOXY TEE',
-    spec: '16s COMBED COTTON 235+ GSM',
-    verse: 'GENESIS 1:3',
-    frameNum: '▲ 02A',
-  },
-  {
-    id: 'frame-3',
-    url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=1400&q=85',
-    title: 'Scripture Backprint Obsidian',
-    caption: 'Tipografi firman bold di bagian punggung sebagai conversation starter di ruang publik.',
-    lookCode: 'LOOK 03',
-    category: 'tees',
-    categoryLabel: 'GRAPHIC TEE',
-    spec: 'DISCHARGE PLASTISOL SCREENPRINT',
-    verse: 'MATTHEW 28:19-20',
-    frameNum: '▲ 03A',
-  },
-  {
-    id: 'frame-4',
-    url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1400&q=85',
-    title: 'Urban Layering & Texture',
-    caption: 'Eksplorasi layering kontemporer antara t-shirt firman dan outerwear kanvas berkarakter.',
-    lookCode: 'LOOK 04',
-    category: 'outerwear',
-    categoryLabel: 'JACKET // OUTER',
-    spec: 'OVERSIZED STREET FIT // UNISEX',
-    verse: 'ROMANS 1:16',
-    frameNum: '▲ 04A',
-  },
-  {
-    id: 'frame-5',
-    url: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=1400&q=85',
-    title: 'The Narrow Gate Minimalist',
-    caption: 'Embroidered badge minimalis di dada kiri dengan aksen jahitan kontras benang emas.',
-    lookCode: 'LOOK 05',
-    category: 'tees',
-    categoryLabel: 'MINIMAL TEE',
-    spec: 'EMBROIDERY // 16s COTTON',
-    verse: 'MATTHEW 7:14',
-    frameNum: '▲ 05A',
-  },
-  {
-    id: 'frame-6',
-    url: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=1400&q=85',
-    title: 'Living Word Flat-Lay Archive',
-    caption: 'Dokumentasi detail potongan leher, woven tag edisi terbatas, dan tekstur katun tebal.',
-    lookCode: 'LOOK 06',
-    category: 'accessories',
-    categoryLabel: 'FLATLAY // DETAILS',
-    spec: 'PRE-SHRUNK FABRIC // 16s',
-    verse: 'JOHN 1:1',
-    frameNum: '▲ 06A',
-  },
-  {
-    id: 'frame-7',
-    url: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1400&q=85',
-    title: 'Subculture Faith Everyday Gear',
-    caption: 'Pakaian dan aksesori yang menemani aktivitas harian komunitas pemuda gereja di kota.',
-    lookCode: 'LOOK 07',
-    category: 'accessories',
-    categoryLabel: 'HEADWEAR // GEAR',
-    spec: 'HEAVYWEIGHT COTTON // BOX CUT',
-    verse: 'EPHESIANS 6:10',
-    frameNum: '▲ 07A',
-  },
-  {
-    id: 'frame-8',
-    url: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=1400&q=85',
-    title: 'Walking in Truth Monochrome',
-    caption: 'Nuansa monokrom kontras tinggi dengan aksen tipografi firman yang tajam dan tahan lama.',
-    lookCode: 'LOOK 08',
-    category: 'outerwear',
-    categoryLabel: 'KNIT // PULLOVER',
-    spec: '235+ GSM HEAVY COMBED COTTON',
-    verse: 'PSALM 119:105',
-    frameNum: '▲ 08A',
-  },
-]
 
 const currentLookbook = computed(() => {
   return catalogStore.lookbooks?.[0] || {
@@ -124,7 +25,7 @@ const currentLookbook = computed(() => {
   }
 })
 
-// Normalisasi foto galeri dengan fallback default frames
+// Normalisasi foto galeri murni dari database (tanpa dummy fallback)
 const allFrames = computed(() => {
   const rawList = currentLookbook.value?.gallery || []
   const validDbFrames = []
@@ -133,10 +34,21 @@ const allFrames = computed(() => {
     rawList.forEach((item, idx) => {
       if (!item) return
       let url = ''
+      let title = ''
       let caption = ''
-      if (typeof item === 'object' && item.url) {
-        url = item.url
-        caption = (item.caption || '').trim()
+      let verse = 'MATTHEW 5:14'
+      let spec = '16s COMBED COTTON 235+ GSM'
+      let fit = 'Boxy Drop-Shoulder Silhouette'
+      let lookCode = `LOOK 0${idx + 1}`
+
+      if (typeof item === 'object' && item !== null) {
+        url = item.url || ''
+        title = item.title || item.caption || `Editorial Look 0${idx + 1}`
+        caption = item.caption || ''
+        verse = item.verse || 'MATTHEW 5:14'
+        spec = item.spec || '16s COMBED COTTON 235+ GSM'
+        fit = item.fit || 'Boxy Drop-Shoulder Silhouette'
+        lookCode = item.lookCode || `LOOK 0${idx + 1}`
       } else if (typeof item === 'string') {
         const trimmed = item.trim()
         if (trimmed.startsWith('{')) {
@@ -144,11 +56,20 @@ const allFrames = computed(() => {
             const parsed = JSON.parse(trimmed)
             if (parsed.url) {
               url = parsed.url
-              caption = (parsed.caption || '').trim()
+              title = parsed.title || parsed.caption || `Editorial Look 0${idx + 1}`
+              caption = parsed.caption || ''
+              verse = parsed.verse || 'MATTHEW 5:14'
+              spec = parsed.spec || '16s COMBED COTTON 235+ GSM'
+              fit = parsed.fit || 'Boxy Drop-Shoulder Silhouette'
+              lookCode = parsed.lookCode || `LOOK 0${idx + 1}`
             }
           } catch (_) {}
         }
-        if (!url) url = trimmed
+        if (!url) {
+          url = trimmed
+          title = `Editorial Look 0${idx + 1}`
+          caption = 'Dokumentasi arsip rilisan Bible Talk.'
+        }
       }
 
       if (url) {
@@ -162,32 +83,21 @@ const allFrames = computed(() => {
         validDbFrames.push({
           id: `db-frame-${idx}`,
           url,
-          title: caption || `Editorial Look 0${idx + 1}`,
-          caption: caption || 'Dokumentasi arsip rilisan Bible Talk.',
-          lookCode: `LOOK 0${idx + 1}`,
+          title: title || `Editorial Look 0${idx + 1}`,
+          caption: caption || title || 'Dokumentasi arsip rilisan Bible Talk.',
+          lookCode: lookCode || `LOOK 0${idx + 1}`,
           category: assignedCat,
           categoryLabel: catLabels[assignedCat],
-          spec: '16s COMBED COTTON 235+ GSM',
-          verse: 'MATTHEW 5:14',
+          spec: spec || '16s COMBED COTTON 235+ GSM',
+          verse: verse || 'MATTHEW 5:14',
+          fit: fit || 'Boxy Drop-Shoulder Silhouette',
           frameNum: `▲ 0${idx + 1}A`,
         })
       }
     })
   }
 
-  if (validDbFrames.length >= 6) {
-    return validDbFrames
-  } else if (validDbFrames.length > 0) {
-    const combined = [...validDbFrames]
-    DEFAULT_EDITORIAL_FRAMES.forEach((df) => {
-      if (!combined.some((c) => c.url === df.url)) {
-        combined.push(df)
-      }
-    })
-    return combined.slice(0, 8)
-  }
-
-  return DEFAULT_EDITORIAL_FRAMES
+  return validDbFrames
 })
 
 // Lightbox Modal
@@ -289,7 +199,9 @@ function getPuzzleClasses(idx) {
           <div class="hidden sm:flex items-center gap-3 text-[11px] text-brand-600 font-bold">
             <span>35MM KODAK TRI-X</span>
             <span>•</span>
-            <span class="text-brand-950 font-black">08 EDITORIAL LOOKS</span>
+            <span class="text-brand-950 font-black">
+              {{ allFrames.length < 10 ? '0' + allFrames.length : allFrames.length }} EDITORIAL LOOKS
+            </span>
           </div>
         </div>
 
@@ -307,19 +219,6 @@ function getPuzzleClasses(idx) {
             <p class="text-sm sm:text-base text-brand-800 font-sans leading-relaxed max-w-2xl">
               Dokumentasi editorial seluruh rilisan pakaian, outerwear, dan aksesori bernuansa firman. Menghadirkan keseimbangan antara pesan kebenaran abadi dan estetika streetwear kontemporer di lanskap perkotaan.
             </p>
-
-            <!-- Tidy Editorial Detail Badges (Variasi tanpa kategori) -->
-            <div class="flex items-center gap-2 flex-wrap pt-1 font-mono text-[11px]">
-              <span class="px-2.5 py-1 bg-brand-100 text-brand-950 border border-brand-950/40 font-bold uppercase">
-                ✦ 35mm Analog
-              </span>
-              <span class="px-2.5 py-1 bg-brand-100 text-brand-950 border border-brand-950/40 font-bold uppercase">
-                ✦ Heavyweight 16s & Fleece
-              </span>
-              <span class="px-2.5 py-1 bg-brand-100 text-brand-950 border border-brand-950/40 font-bold uppercase">
-                ✦ Urban Landscape
-              </span>
-            </div>
           </div>
 
           <!-- Right: Compact Scripture & Catalog Card -->
@@ -349,8 +248,12 @@ function getPuzzleClasses(idx) {
       </div>
 
       <!-- ABSTRACT PUZZLE EDITORIAL GALLERY (Asymmetric Scrapbook Spreads) -->
-      <div v-if="allFrames.length === 0" class="p-12 text-center bg-white border-2 border-dashed border-brand-950/40 font-mono text-xs text-brand-500">
-        Tidak ada frame foto untuk lookbook ini.
+      <div v-if="allFrames.length === 0" class="p-16 text-center bg-white border-2 border-dashed border-brand-950/40 font-mono text-xs text-brand-600 space-y-2">
+        <Camera class="w-8 h-8 stroke-[1.5] mx-auto text-brand-950 opacity-40 mb-2" />
+        <p class="font-bold text-sm text-brand-950 uppercase tracking-wider">Belum Ada Frame Foto Editorial</p>
+        <p class="text-[11px] text-brand-500 max-w-md mx-auto leading-relaxed">
+          Galeri foto lookbook saat ini masih kosong. Admin dapat menambahkan foto editorial melalui menu CMS Editorial Lookbook.
+        </p>
       </div>
       <div v-else class="grid grid-cols-2 md:grid-cols-12 gap-3.5 sm:gap-6 md:gap-8 items-stretch">
         <div
@@ -498,7 +401,7 @@ function getPuzzleClasses(idx) {
                 {{ activeFrame.title }}
               </h2>
 
-              <p class="text-xs text-brand-800 font-sans leading-relaxed">
+              <p v-if="activeFrame.caption && activeFrame.caption !== activeFrame.title" class="text-xs text-brand-800 font-sans leading-relaxed">
                 {{ activeFrame.caption }}
               </p>
 
@@ -507,9 +410,9 @@ function getPuzzleClasses(idx) {
                   <Check class="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                   <span class="font-bold">{{ activeFrame.spec }}</span>
                 </div>
-                <div class="flex items-center gap-2">
+                <div v-if="activeFrame.fit" class="flex items-center gap-2">
                   <Check class="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                  <span>Boxy Drop-Shoulder Silhouette</span>
+                  <span>{{ activeFrame.fit }}</span>
                 </div>
               </div>
             </div>

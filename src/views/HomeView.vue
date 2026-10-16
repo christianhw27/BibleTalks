@@ -35,6 +35,40 @@ const activeLookbook = computed(() => {
   return catalogStore.lookbooks?.[0] || null
 })
 
+const activeLookbookImage = computed(() => {
+  if (!activeLookbook.value) return null
+  const g = activeLookbook.value.gallery?.[0]
+  if (g) {
+    if (typeof g === 'object' && g.url) return g.url
+    if (typeof g === 'string') {
+      const trimmed = g.trim()
+      if (trimmed.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(trimmed)
+          if (parsed.url) return parsed.url
+        } catch (_) {}
+      }
+      return trimmed
+    }
+  }
+  return activeLookbook.value.cover_image || null
+})
+
+const bannerSettings = computed(() => {
+  const settings = activeLookbook.value?.banner_settings || {}
+  const galleryCount = activeLookbook.value?.gallery?.length || 8
+  return {
+    banner_badge: settings.banner_badge || '✦ 35MM EDITORIAL ARCHIVE',
+    banner_tagline: settings.banner_tagline || 'EDITORIAL ARCHIVE',
+    spec1_label: settings.spec1_label || 'MEDIUM',
+    spec1_val: settings.spec1_val || '35mm Kodak Tri-X',
+    spec2_label: settings.spec2_label || 'ARCHIVE',
+    spec2_val: settings.spec2_val || `Vol. 01 / ${galleryCount} Looks`,
+    btn1_text: settings.btn1_text || 'Buka Full Lookbook',
+    btn2_text: settings.btn2_text || 'Lihat Katalog',
+  }
+})
+
 // Dynamic Categories from Catalog Store Showcase (Editable via Admin)
 const categoryList = computed(() => {
   if (catalogStore.homepageShowcaseCards && catalogStore.homepageShowcaseCards.length > 0) {
@@ -578,10 +612,15 @@ watch(
             <div class="absolute inset-0 halftone-screen opacity-0 group-hover:opacity-40 transition-opacity duration-300 z-10 pointer-events-none"></div>
 
             <img
+              v-if="cat.image"
               :src="cat.image"
               :alt="cat.name"
               class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
             />
+            <div v-else class="w-full h-full flex flex-col items-center justify-center bg-brand-100 text-brand-400 font-mono text-[10px] uppercase">
+              <Camera class="w-6 h-6 stroke-[1.5] mb-1 opacity-40 text-brand-950" />
+              <span class="text-brand-600 font-bold">No Image</span>
+            </div>
             
             <!-- Sticker Slap Badge -->
             <div class="absolute top-2.5 left-2.5 z-20 -rotate-3">
@@ -660,10 +699,15 @@ watch(
               <div class="absolute inset-0 halftone-screen opacity-0 group-hover:opacity-40 transition-opacity duration-300 z-10 pointer-events-none"></div>
 
               <img
+                v-if="bundle.image"
                 :src="bundle.image"
                 :alt="bundle.title"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
+              <div v-else class="w-full h-full flex flex-col items-center justify-center bg-brand-100 text-brand-400 font-mono text-[10px] uppercase">
+                <Camera class="w-6 h-6 stroke-[1.5] mb-1 opacity-40 text-brand-950" />
+                <span class="text-brand-600 font-bold">No Image</span>
+              </div>
               <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
 
               <!-- Sticker Badges -->
@@ -754,22 +798,28 @@ watch(
         <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 items-center">
           
           <!-- Image Frame with Choppy Top-Right Cut (Col 7) -->
-          <div class="lg:col-span-7 relative h-72 sm:h-96 lg:h-[460px] overflow-hidden bg-brand-100 zine-border lg:border-r-2 lg:border-b-0 border-b-2 border-brand-950">
+          <div class="lg:col-span-7 relative h-72 sm:h-96 lg:h-[460px] overflow-hidden bg-brand-100 zine-border lg:border-r-2 lg:border-b-0 border-b-2 border-brand-950 flex items-center justify-center">
             <div class="tape-strip -top-3 left-8 -rotate-2"></div>
             <div class="tape-strip -bottom-3 right-8 rotate-3 hidden sm:block"></div>
 
             <div class="absolute inset-0 halftone-screen opacity-20 pointer-events-none z-10"></div>
             
             <img
-              :src="activeLookbook?.gallery?.[0] || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80'"
+              v-if="activeLookbookImage"
+              :src="activeLookbookImage"
               alt="Editorial Photography"
               class="w-full h-full object-cover filter contrast-105 hover:scale-105 transition-all duration-700"
             />
+            <div v-else class="w-full h-full flex flex-col items-center justify-center bg-brand-100 text-brand-400 font-mono text-xs uppercase p-8 text-center">
+              <Camera class="w-10 h-10 stroke-[1.5] mb-2 opacity-40 text-brand-950" />
+              <span class="font-bold text-brand-950">Lookbook Archive</span>
+              <span class="text-[10px] text-brand-500 mt-0.5">Belum ada foto yang diunggah</span>
+            </div>
 
             <!-- Top Stamped Sticker -->
             <div class="absolute top-4 left-4 z-20 -rotate-3">
               <span class="px-2.5 py-1 bg-brand-950 text-scripture-gold font-mono font-black text-[10px] sm:text-xs uppercase border-2 border-white shadow-[2px_2px_0px_#f5b025]">
-                ✦ 35MM EDITORIAL ARCHIVE
+                {{ bannerSettings.banner_badge }}
               </span>
             </div>
           </div>
@@ -779,7 +829,7 @@ watch(
             <div class="space-y-3">
               <div class="inline-flex items-center gap-1.5 font-mono text-[10px] sm:text-xs text-brand-950 uppercase font-bold tracking-wider">
                 <span class="w-2 h-2 bg-scripture-gold border border-brand-950"></span>
-                <span>EDITORIAL ARCHIVE // {{ activeLookbook?.season || 'SEASON 2026' }}</span>
+                <span>{{ bannerSettings.banner_tagline }} // {{ activeLookbook?.season || 'SEASON 2026' }}</span>
               </div>
               <h2 class="font-sans font-black text-2xl sm:text-4xl text-brand-950 uppercase tracking-tight">
                 {{ activeLookbook?.title || 'Genesis & Concrete Youth' }}
@@ -791,12 +841,12 @@ watch(
               <!-- Quick Spec Row -->
               <div class="grid grid-cols-2 gap-2 pt-2 font-mono text-[10px] text-brand-700 border-t border-brand-950/15">
                 <div>
-                  <span class="text-brand-500 block">MEDIUM</span>
-                  <span class="font-bold text-brand-950">35mm Kodak Tri-X</span>
+                  <span class="text-brand-500 block uppercase">{{ bannerSettings.spec1_label }}</span>
+                  <span class="font-bold text-brand-950">{{ bannerSettings.spec1_val }}</span>
                 </div>
                 <div>
-                  <span class="text-brand-500 block">ARCHIVE</span>
-                  <span class="font-bold text-brand-950">Vol. 01 / 8 Looks</span>
+                  <span class="text-brand-500 block uppercase">{{ bannerSettings.spec2_label }}</span>
+                  <span class="font-bold text-brand-950">{{ bannerSettings.spec2_val }}</span>
                 </div>
               </div>
             </div>
@@ -806,14 +856,14 @@ watch(
                 to="/lookbook"
                 class="inline-flex items-center gap-2.5 px-6 py-3.5 font-mono text-xs uppercase font-black tracking-widest bg-brand-950 text-white hover:bg-brand-900 zine-border zine-shadow zine-shadow-hover zine-btn-active transition-all"
               >
-                <span>Buka Full Lookbook</span>
+                <span>{{ bannerSettings.btn1_text }}</span>
                 <ArrowRight class="w-4 h-4 text-scripture-gold" />
               </router-link>
               <router-link
                 to="/catalog"
                 class="inline-flex items-center gap-2 px-4 py-3.5 font-mono text-xs uppercase font-bold text-brand-950 hover:bg-brand-100 border border-brand-950 transition-colors"
               >
-                <span>Lihat Katalog</span>
+                <span>{{ bannerSettings.btn2_text }}</span>
               </router-link>
             </div>
           </div>
